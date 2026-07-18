@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usb_uart_bridge.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,13 +93,14 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
+  USB_UART_Bridge_Init(&huart1); // Initialize the bridge to work with USART1
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    USB_UART_Bridge_Process(); // Фонова асинхронна перекачка даних
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -154,7 +155,29 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+  USB_UART_Bridge_UART_RxCallback(huart, Size);
+}
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  USB_UART_Bridge_UART_TxCallback(huart);
+}
+
+// Приклад перевизначення "хука" бізнес-логіки прямо в main.c:
+uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
+  // Приклад бізнес-логіки: перехоплення або заміна даних
+  for (uint16_t i = 0; i < len; i++) {
+    if (data[i] == 'a') data[i] = 'A'; // Модифікація на льоту
+  }
+  return len;
+}
+
+uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len) {
+  // Можна залишити порожнім, або обробляти дані з UART перед відправкою на ПК
+  return len; 
+}
 /* USER CODE END 4 */
 
 /**

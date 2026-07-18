@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include "usb_uart_bridge.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -218,12 +218,23 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
   /*******************************************************************************/
     case CDC_SET_LINE_CODING:
-
-    break;
-
+      // Комп'ютер каже нам, яку швидкість він хоче (вона записується в pbuf)
+      // Для простого віртуального порту нам зазвичай байдуже, яку швидкість вибрав користувач,
+      // тому ми просто кажемо "ОК"
+      return (USBD_OK);
+      
     case CDC_GET_LINE_CODING:
-
-    break;
+      // Комп'ютер запитує поточні налаштування. 
+      // Якщо тут віддати сміття, порт теж може не відкритися.
+      // Зазвичай CubeMX генерує тут заповнення pbuf дефолтними значеннями (115200, 8N1)
+      pbuf[0] = (uint8_t)(115200);
+      pbuf[1] = (uint8_t)(115200 >> 8);
+      pbuf[2] = (uint8_t)(115200 >> 16);
+      pbuf[3] = (uint8_t)(115200 >> 24);
+      pbuf[4] = 0; // Stop bits (1)
+      pbuf[5] = 0; // Parity (None)
+      pbuf[6] = 8; // Data bits (8)
+      return (USBD_OK);
 
     case CDC_SET_CONTROL_LINE_STATE:
 
@@ -259,6 +270,9 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  // Просто віддаємо дані нашому автономному модулю
+  USB_UART_Bridge_USB_Receive(Buf, *Len);
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
