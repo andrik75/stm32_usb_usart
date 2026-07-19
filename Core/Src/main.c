@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "debug_log.h"
 #include "usb_uart_bridge.h"
 /* USER CODE END Includes */
 
@@ -98,6 +99,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
     USB_UART_Bridge_Process(); // Фонова асинхронна перекачка даних
@@ -188,6 +190,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+  LOG_ERR("%s", "Something went wrong so we hit in Error_Handler!!!");
   __disable_irq();
   while (1)
   {

@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "debug_log.h"
 #include "usb_uart_bridge.h"
 #include "usbd_cdc_if.h" // Потрібен для CDC_Transmit_FS та дескриптора USB
 
@@ -120,6 +121,7 @@ void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
     uint16_t free_space = BRIDGE_FIFO_SIZE - FIFO_GetCount(&usb_to_uart_fifo);
 
     if (free_space > BRIDGE_FIFO_SIZE / 2) {
+        LOG_INFO("USB RX processing %d bytes...", len);
         // Місце є — обробляємо і записуємо
         uint16_t modified_len = USB_UART_Bridge_OnUSBReceive(pbuf, (uint16_t)len);
         if (modified_len > 0) {
@@ -133,6 +135,7 @@ void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
     else {
         // МІСЦЯ МАЛО! Вмикаємо паузу і НЕ викликаємо ReceivePacket.
         // Комп'ютер отримає NAK на рівні заліза і заморозить передачу.
+        LOG_WARN("USB RX paused!");
         usb_rx_paused = true;
     }
 }
@@ -187,9 +190,13 @@ void USB_UART_Bridge_Process(void) {
         uint16_t send_len = FIFO_Read(&usb_to_uart_fifo, tx_uart_active_buf, BRIDGE_FIFO_SIZE);
         if (send_len > 0) {
             uart_tx_complete = false;
+            LOG_INFO("UART transmitting %d bytes", send_len);
             if (HAL_UART_Transmit_DMA(p_huart, tx_uart_active_buf, send_len) != HAL_OK) {
                 uart_tx_complete = true; 
+                LOG_ERR("UART transmitting failed!");
             }
+            else
+                LOG_INFO("UART transmitting succeeded");
         }
     }
 
@@ -200,6 +207,7 @@ void USB_UART_Bridge_Process(void) {
         // Якщо буфер звільнився хоча б наполовину — даємо команду ПК продовжувати
         if (free_space > (BRIDGE_FIFO_SIZE / 2)) {
             usb_rx_paused = false;
+            LOG_WARN("USB RX restored");
              
             // Знімаємо блокування та відновлюємо прийом пакетів
             USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &p_usb_rx_buffer[0]);

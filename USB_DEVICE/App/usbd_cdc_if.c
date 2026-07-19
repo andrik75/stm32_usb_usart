@@ -22,6 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "debug_log.h"
 #include "usb_uart_bridge.h"
 /* USER CODE END INCLUDE */
 
@@ -270,6 +271,9 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  // Log the length of the data received when debugging
+  LOG_INFO("USB received %d bytes", *Len);
+ 
   // Просто віддаємо дані нашому автономному модулю
   USB_UART_Bridge_USB_Receive(Buf, *Len);
 
