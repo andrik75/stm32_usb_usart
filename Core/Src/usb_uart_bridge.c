@@ -20,6 +20,9 @@ static uint32_t old_pos = 0;
 static uint8_t tx_uart_active_buf[BRIDGE_FIFO_SIZE];
 static volatile bool uart_tx_complete = true;
 
+static volatile bool usb_rx_paused = false;
+static uint8_t *p_usb_rx_buffer = NULL; // Запам'ятовуємо вказівник на USB буфер стеку
+
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 // --- Приватні функції кільцевого буфера ---
@@ -35,13 +38,38 @@ static void FIFO_Write(BridgeRingBuffer_t *buf, const uint8_t *data, uint16_t le
     }
 }
 
-static uint16_t FIFO_Read(BridgeRingBuffer_t *buf, uint8_t *data, uint16_t max_len) {
-    uint16_t count = 0;
-    while (buf->head != buf->tail && count < max_len) {
-        data[count++] = buf->data[buf->tail];
-        buf->tail = (buf->tail + 1) & (BRIDGE_FIFO_SIZE - 1);
+uint16_t FIFO_Read_Block(BridgeRingBuffer_t *buf, uint8_t *dest, uint16_t max_len) {
+    uint16_t head = buf->head; // Зберігаємо в локальні змінні, бо вони volatile
+    uint16_t tail = buf->tail;
+    
+    if (head == tail || max_len == 0) return 0;
+
+    uint16_t available = (head - tail) & (BRIDGE_FIFO_SIZE - 1);
+    uint16_t to_read = (available > max_len) ? max_len : available;
+    
+    // Шматок 1: від tail до кінця фізичного масиву (або до head, якщо розриву немає)
+    uint16_t chunk1 = BRIDGE_FIFO_SIZE - tail;
+    if (chunk1 > to_read) {
+        chunk1 = to_read;
     }
-    return count;
+    
+    // Миттєве копіювання першого шматка
+    memcpy(dest, &buf->data[tail], chunk1);
+    
+    // Шматок 2: якщо дані завернули на початок масиву
+    uint16_t chunk2 = to_read - chunk1;
+    if (chunk2 > 0) {
+        memcpy(&dest[chunk1], &buf->data[0], chunk2);
+    }
+    
+    // Оновлюємо покажчик tail один єдиний раз для всього блоку!
+    buf->tail = (tail + to_read) & (BRIDGE_FIFO_SIZE - 1);
+    
+    return to_read;
+}
+
+static uint16_t FIFO_Read(BridgeRingBuffer_t *buf, uint8_t *dest, uint16_t max_len) {
+    return FIFO_Read_Block(buf, dest, max_len);
 }
 
 static uint16_t FIFO_GetCount(BridgeRingBuffer_t *buf) {
@@ -85,10 +113,27 @@ void USB_UART_Bridge_Init(UART_HandleTypeDef *huart) {
 }
 
 void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
-    // Обробка через бізнес-логіку користувача
-    uint16_t modified_len = USB_UART_Bridge_OnUSBReceive(pbuf, (uint16_t)len);
-    if (modified_len > 0) {
-        FIFO_Write(&usb_to_uart_fifo, pbuf, modified_len);
+    p_usb_rx_buffer = pbuf; // Зберігаємо лінк на внутрішній буфер HAL USB
+
+    // Перевіряємо, чи є в нашому FIFO достатньо місця для цього пакета (макс пакет = 64 байти)
+    // Залишаємо запас безпеки (наприклад, 128 байт)
+    uint16_t free_space = BRIDGE_FIFO_SIZE - FIFO_GetCount(&usb_to_uart_fifo);
+
+    if (free_space > BRIDGE_FIFO_SIZE / 2) {
+        // Місце є — обробляємо і записуємо
+        uint16_t modified_len = USB_UART_Bridge_OnUSBReceive(pbuf, (uint16_t)len);
+        if (modified_len > 0) {
+            FIFO_Write(&usb_to_uart_fifo, pbuf, modified_len);
+        }
+        
+        // Дозволяємо USB-стеку прийняти наступний пакет
+        USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &pbuf[0]);
+        USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+    } 
+    else {
+        // МІСЦЯ МАЛО! Вмикаємо паузу і НЕ викликаємо ReceivePacket.
+        // Комп'ютер отримає NAK на рівні заліза і заморозить передачу.
+        usb_rx_paused = true;
     }
 }
 
@@ -145,6 +190,20 @@ void USB_UART_Bridge_Process(void) {
             if (HAL_UART_Transmit_DMA(p_huart, tx_uart_active_buf, send_len) != HAL_OK) {
                 uart_tx_complete = true; 
             }
+        }
+    }
+
+    /* АКТУАЛЬНО: Перевірка зняття паузи з USB */
+    if (usb_rx_paused && p_usb_rx_buffer != NULL) {
+        uint16_t free_space = BRIDGE_FIFO_SIZE - FIFO_GetCount(&usb_to_uart_fifo);
+        
+        // Якщо буфер звільнився хоча б наполовину — даємо команду ПК продовжувати
+        if (free_space > (BRIDGE_FIFO_SIZE / 2)) {
+            usb_rx_paused = false;
+             
+            // Знімаємо блокування та відновлюємо прийом пакетів
+            USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &p_usb_rx_buffer[0]);
+            USBD_CDC_ReceivePacket(&hUsbDeviceFS);
         }
     }
 
