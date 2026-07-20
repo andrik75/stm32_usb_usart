@@ -7,15 +7,40 @@ static void FIFO_Init(RingBuffer_t *self) {
 }
 
 static void FIFO_Write(RingBuffer_t *self, const uint8_t *data, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        uint16_t next_head = (self->head + 1) & (RING_BUFFER_SIZE - 1);
-        if (next_head != self->tail) {
-            self->data[self->head] = data[i];
-            self->head = next_head;
-        } else {
-            break; // Overflow, ignore the rest of the packet
-        }
+    if (len == 0 || data == NULL) 
+        return;
+
+    // 1. Fetch current volatile state into local variables
+    uint16_t head = self->head;
+    uint16_t tail = self->tail;
+
+    // 2. Calculate available space in the buffer
+    uint16_t free_space = (tail - head - 1) & (RING_BUFFER_SIZE - 1);
+    
+    // Return early if no space is available
+    if (free_space == 0) 
+        return;
+
+    // Clamp length to available space (overflow protection)
+    uint16_t to_write = (len < free_space) ? len : free_space;
+
+    // 3. Chunk 1: from current head to the end of the physical array
+    uint16_t chunk1 = RING_BUFFER_SIZE - head;
+    if (chunk1 > to_write) {
+        chunk1 = to_write; // Fits entirely without wrapping around
     }
+
+    // Fast copy for the first chunk
+    memcpy(&self->data[head], data, chunk1);
+
+    // 4. Chunk 2: wrap-around data to the beginning of the array [0]
+    uint16_t chunk2 = to_write - chunk1;
+    if (chunk2 > 0) {
+        memcpy(&self->data[0], &data[chunk1], chunk2);
+    }
+
+    // 5. Update head pointer only once for the entire block!
+    self->head = (head + to_write) & (RING_BUFFER_SIZE - 1);
 }
 
 static uint16_t FIFO_Read_Block(RingBuffer_t *self, uint8_t *dest, uint16_t max_len) {

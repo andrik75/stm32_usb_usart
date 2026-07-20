@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "uart_rx_tx.h"
 #include "debug_log.h"
-#include "ring_buffer.h"
 
 RingBuffer_t uart_rx_fifo;
 static UART_HandleTypeDef *p_huart = NULL;
@@ -27,7 +27,7 @@ __weak uint16_t UART_on_receive(uint8_t *data, uint16_t len)
     return len;
 }
 
-void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+static void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (p_huart != NULL && huart->Instance == p_huart->Instance) {
         uint16_t write_pos = Size;
         if (write_pos != old_pos) {
@@ -63,7 +63,7 @@ void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     }
 }
 
-void UART_TxCallback(UART_HandleTypeDef *huart) {
+static void UART_TxCallback(UART_HandleTypeDef *huart) {
     if (p_huart != NULL && huart->Instance == p_huart->Instance) {
         uart_tx_complete = true;
     }
@@ -88,12 +88,12 @@ void UART_Process_TX(RingBuffer_t *p_uart_tx_fifo) {
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-    if (p_huart == huart)
-        UART_RxCallback(huart, Size);
+    LOG_INFO("HAL_UARTEx_RxEventCallback");
+    UART_RxCallback(huart, Size);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if (p_huart == huart)
-        UART_TxCallback(huart);
+    LOG_INFO("HAL_UART_TxCpltCallback");
+    UART_TxCallback(huart);
 }

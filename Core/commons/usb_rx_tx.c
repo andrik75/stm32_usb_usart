@@ -31,7 +31,7 @@ USBD_StatusTypeDef __int_USB_Receive(uint8_t *pbuf, uint32_t len) {
 
     // Allow reception only if guaranteed space exists for MAXIMUM packet (64 bytes)
     if (free_space > 64) {
-        LOG_INFO("USB RX processing %d bytes...", len);
+        LOG_INFO("USB RX: %d bytes received", len);
         // Space available — process and write
         uint16_t modified_len = USB_on_receive(pbuf, (uint16_t)len); // Just call the handler to process the data
         if (modified_len > 0) {
@@ -84,7 +84,11 @@ void USB_Process_TX(RingBuffer_t *p_usb_tx_fifo) {
         if (hcdc != NULL && hcdc->TxState == 0) {
             uint16_t read_bytes = p_usb_tx_fifo->Read(p_usb_tx_fifo, temp_usb_buf, chunk_size);
             if (read_bytes > 0) {
-                CDC_Transmit_FS(temp_usb_buf, read_bytes);
+                if (CDC_Transmit_FS(temp_usb_buf, read_bytes) == USBD_OK) {
+                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
+                } else {
+                    LOG_ERR("USB TX: transmission failed!");
+                }
             }
         }
     }
