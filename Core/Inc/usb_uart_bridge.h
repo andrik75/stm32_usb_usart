@@ -2,37 +2,40 @@
 #define INC_USB_UART_BRIDGE_H_
 
 #include "main.h"
+#include "bridge_ring_buffer.h"
+#include "bridge_uart.h"
+#include "bridge_usb.h"
 
-// --- Конфігурація ---
-#define BRIDGE_FIFO_SIZE       1024  // Розмір буферів (має бути ступенем двійки)
-#define BRIDGE_UART_RX_RAW_SZ  256   // Розмір сирого буфера DMA для UART
+// Shared data objects used across bridge modules
+extern UART_HandleTypeDef *p_huart;
+extern BridgeRingBuffer_t usb_to_uart_fifo;
+extern BridgeRingBuffer_t uart_to_usb_fifo;
 
-// --- Публічні функції інтерфейсу ---
+// --- Public interface functions ---
 
 /**
- * @brief Ініціалізація мосту. Запускає DMA та обнуляє буфери.
- * @param huart Вказівник на структуру дескриптора UART (наприклад, &huart1)
+ * @brief Bridge initialization. Starts DMA and resets buffers.
+ * @param huart Pointer to UART handle structure (e.g., &huart1)
  */
 void USB_UART_Bridge_Init(UART_HandleTypeDef *huart);
 
 /**
- * @brief Фоновий обробник мосту. Повинен викликатися в головному циклі while(1).
+ * @brief Background handler of the bridge. Must be called in main loop while(1).
  */
 void USB_UART_Bridge_Process(void);
 
-/**
- * @brief Колбек для інтеграції в HAL_UARTEx_RxEventCallback.
- */
-void USB_UART_Bridge_UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size);
+// --- USER CODE SECTION (BUSINESS LOGIC FOR DATA MODIFICATION) ---
 
 /**
- * @brief Колбек для інтеграції в HAL_UART_TxCpltCallback.
+ * @brief Data received from USB from PC before sending to UART.
+ *        You can modify the 'data' array on the fly.
+ * @return New data length (if changed). 0 — discard packet.
  */
-void USB_UART_Bridge_UART_TxCallback(UART_HandleTypeDef *huart);
+uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len);
 
 /**
- * @brief Передача даних з USB в міст. Викликається з CDC_Receive_FS.
+ * @brief Data received from UART before sending to USB to PC.
  */
-uint8_t USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len);
+uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */
