@@ -37,7 +37,6 @@ USBD_StatusTypeDef __int_USB_Receive(uint8_t *pbuf, uint32_t len) {
         if (modified_len > 0) {
             usb_rx_fifo.Write(&usb_rx_fifo, pbuf, modified_len);
         }
-    return modified_len;
 
         // Return 0 (USBD_OK), stack itself will call ReceivePacket inside usbd_cdc_if.c
         return USBD_OK; 
@@ -67,7 +66,6 @@ void USB_Resume_RX() {
              
             // Forcefully restart polling USB endpoint, 
             // as hardware was "frozen" due to NAK status
-            USBD_CDC_SetRxBuffer(&hUsbDeviceFS, p_usb_rx_buffer);
             USBD_CDC_ReceivePacket(&hUsbDeviceFS);
         }
     }
