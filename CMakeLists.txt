@@ -48,9 +48,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ThirdParty/RTT/SEGGER_RTT.c
     ThirdParty/RTT/SEGGER_RTT_printf.c
-    Core/commons/bridge_ring_buffer.c
-    Core/commons/bridge_uart.c
-    Core/commons/bridge_usb.c
+    Core/commons/ring_buffer.c
+    Core/commons/uart_rx_tx.c
+    Core/commons/usb_rx_tx.c
 )
 
 # Add include paths

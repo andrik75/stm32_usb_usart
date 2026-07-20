@@ -157,16 +157,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-  USB_UART_Bridge_UART_RxCallback(huart, Size);
-}
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-  USB_UART_Bridge_UART_TxCallback(huart);
-}
-
 // Приклад перевизначення "хука" бізнес-логіки прямо в main.c:
 uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
   // Приклад бізнес-логіки: перехоплення або заміна даних

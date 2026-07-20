@@ -1,10 +1,13 @@
-#include "usb_uart_bridge.h"
 #include <stddef.h>
+#include <stdint.h>
+#include "usb_uart_bridge.h"
+#include "ring_buffer.h"
+#include "uart_rx_tx.h"
+#include "usb_rx_tx.h"
 
 // Shared global instances
-UART_HandleTypeDef *p_huart = NULL;
-BridgeRingBuffer_t usb_to_uart_fifo;
-BridgeRingBuffer_t uart_to_usb_fifo;
+extern RingBuffer_t uart_rx_fifo;
+extern RingBuffer_t usb_rx_fifo;
 
 // --- USER CODE SECTION (DATA MODIFICATION BUSINESS LOGIC) ---
 
@@ -18,6 +21,10 @@ __weak uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
     return len;
 }
 
+uint16_t USB_on_receive(uint8_t *data, uint16_t len) {
+    return USB_UART_Bridge_OnUSBReceive(data, (uint16_t)len);
+ }
+
 /**
  * @brief Data comes from UART here before being sent to USB to PC.
  */
@@ -26,19 +33,22 @@ __weak uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len) {
     return len;
 }
 
+uint16_t UART_on_receive(uint8_t *data, uint16_t len) {
+    return USB_UART_Bridge_OnUARTReceive(data, (uint16_t)len);
+ }
+
 // --- Implementation of public interface ---
 
 void USB_UART_Bridge_Init(UART_HandleTypeDef *huart) {
-    BridgeRingBuffer_Ctor(&usb_to_uart_fifo);
-    BridgeRingBuffer_Ctor(&uart_to_usb_fifo);
+    RingBuffer_Ctor(&usb_rx_fifo); // ring buffer to receive data from USB and transmit them via UART
+    RingBuffer_Ctor(&uart_rx_fifo); // ring buffer to receive data from UART and transmit them via USB
 
-    Bridge_USB_Init();
-    Bridge_UART_Init(huart);
+    USB_RX_TX_Init();
+    UART_RX_TX_Init(huart);
 }
 
 void USB_UART_Bridge_Process(void) {
-    if (p_huart == NULL) return;
-
-    Bridge_UART_Process_TX();
-    Bridge_USB_Process();
+    UART_Process_TX(&usb_rx_fifo);
+    USB_Resume_RX();
+    USB_Process_TX(&uart_rx_fifo);
 }
