@@ -2,6 +2,7 @@
 #include "debug_log.h"
 #include "usb_uart_bridge.h"
 #include "usbd_cdc_if.h" // Потрібен для CDC_Transmit_FS та дескриптора USB
+#include "usbd_def.h"
 
 // Внутрішня структура FIFO
 typedef struct {
@@ -113,14 +114,15 @@ void USB_UART_Bridge_Init(UART_HandleTypeDef *huart) {
     __HAL_DMA_DISABLE_IT(p_huart->hdmarx, DMA_IT_HT); 
 }
 
-void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
+uint8_t USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
     p_usb_rx_buffer = pbuf; // Зберігаємо лінк на внутрішній буфер HAL USB
 
     // Перевіряємо, чи є в нашому FIFO достатньо місця для цього пакета (макс пакет = 64 байти)
     // Залишаємо запас безпеки (наприклад, 128 байт)
     uint16_t free_space = BRIDGE_FIFO_SIZE - FIFO_GetCount(&usb_to_uart_fifo);
 
-    if (free_space > BRIDGE_FIFO_SIZE / 2) {
+    // Дозволяємо прийом тільки якщо є гарантоване місце для МАКСИМАЛЬНОГО пакету (64 байти)
+    if (free_space > 64) {
         LOG_INFO("USB RX processing %d bytes...", len);
         // Місце є — обробляємо і записуємо
         uint16_t modified_len = USB_UART_Bridge_OnUSBReceive(pbuf, (uint16_t)len);
@@ -128,15 +130,19 @@ void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len) {
             FIFO_Write(&usb_to_uart_fifo, pbuf, modified_len);
         }
         
-        // Дозволяємо USB-стеку прийняти наступний пакет
-        USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &pbuf[0]);
-        USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+        // Повертаємо 0 (USBD_OK), стек сам викличе ReceivePacket всередині usbd_cdc_if.c
+        return USBD_OK; 
     } 
     else {
-        // МІСЦЯ МАЛО! Вмикаємо паузу і НЕ викликаємо ReceivePacket.
-        // Комп'ютер отримає NAK на рівні заліза і заморозить передачу.
-        LOG_WARN("USB RX paused!");
-        usb_rx_paused = true;
+        // МІСЦЯ НЕМАЄ! Кажемо стеку, що ми зайняті.
+        if (!usb_rx_paused) {
+            LOG_WARN("USB RX paused, buffer full!");
+            usb_rx_paused = true;
+        }
+        
+        // Повертаємо 1 (USBD_BUSY). Стек НЕ буде викликати ReceivePacket, 
+        // залізо виставить NAK, і ПК призупинить передачу!
+        return USBD_BUSY; 
     }
 }
 
@@ -200,17 +206,18 @@ void USB_UART_Bridge_Process(void) {
         }
     }
 
-    /* АКТУАЛЬНО: Перевірка зняття паузи з USB */
+    /* Відновлення прийому з USB */
     if (usb_rx_paused && p_usb_rx_buffer != NULL) {
         uint16_t free_space = BRIDGE_FIFO_SIZE - FIFO_GetCount(&usb_to_uart_fifo);
         
-        // Якщо буфер звільнився хоча б наполовину — даємо команду ПК продовжувати
+        // Знімаємо паузу, якщо звільнилося достатньо місця (наприклад, більше половини буфера)
         if (free_space > (BRIDGE_FIFO_SIZE / 2)) {
             usb_rx_paused = false;
             LOG_WARN("USB RX restored");
              
-            // Знімаємо блокування та відновлюємо прийом пакетів
-            USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &p_usb_rx_buffer[0]);
+            // Примусово перезапускаємо опитування USB точки збуту, 
+            // оскільки залізо було «заморожене» через NAK статус
+            USBD_CDC_SetRxBuffer(&hUsbDeviceFS, p_usb_rx_buffer);
             USBD_CDC_ReceivePacket(&hUsbDeviceFS);
         }
     }

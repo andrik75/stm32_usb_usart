@@ -33,6 +33,6 @@ void USB_UART_Bridge_UART_TxCallback(UART_HandleTypeDef *huart);
 /**
  * @brief Передача даних з USB в міст. Викликається з CDC_Receive_FS.
  */
-void USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len);
+uint8_t USB_UART_Bridge_USB_Receive(uint8_t *pbuf, uint32_t len);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */

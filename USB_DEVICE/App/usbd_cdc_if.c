@@ -24,6 +24,8 @@
 /* USER CODE BEGIN INCLUDE */
 #include "debug_log.h"
 #include "usb_uart_bridge.h"
+#include "usbd_def.h"
+#include <stdint.h>
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -274,12 +276,14 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   // Log the length of the data received when debugging
   LOG_INFO("USB received %d bytes", *Len);
  
-  // Просто віддаємо дані нашому автономному модулю
-  USB_UART_Bridge_USB_Receive(Buf, *Len);
-
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  return (USBD_OK);
+  // Let's pass the data into the bridge and process the result
+  uint8_t result = USB_UART_Bridge_USB_Receive(Buf, *Len);
+  if (result == USBD_OK)
+  {
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, Buf);
+    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  }
+  return result;
   /* USER CODE END 6 */
 }
 
