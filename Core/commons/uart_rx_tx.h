@@ -1,5 +1,17 @@
-#ifndef INC_BRIDGE_UART_H_
-#define INC_BRIDGE_UART_H_
+/**
+  * @file    uart_rx_tx.h
+  * @author  Andriy Bratus <ambr75@gmail.com>
+  * @brief   Header file for UART Rx/Tx DMA implementation.
+  * @date    2026
+  *
+  * @copyright Copyright (c) 2026 Andriy Bratus <ambr75@gmail.com>
+  *            All rights reserved.
+  *
+  * @attention
+  * SPDX-License-Identifier: GPL-3.0-or-later
+  */
+#ifndef INC_UART_RX_TX_H_
+#define INC_UART_RX_TX_H_
 
 #include "stm32f1xx_hal.h"
 #include "ring_buffer.h"
@@ -16,4 +28,4 @@ void UART_RX_TX_Init(UART_HandleTypeDef *huart);
  */
 void UART_transmit(RingBuffer_t *p_uart_tx_fifo);
 
-#endif /* INC_BRIDGE_UART_H_ */
+#endif /* INC_UART_RX_TX_H_ */

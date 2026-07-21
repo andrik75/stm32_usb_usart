@@ -1,3 +1,15 @@
+/**
+  * @file    usb_uart_bridge.c
+  * @author  Andriy Bratus <ambr75@gmail.com>
+  * @brief   Source file for USB <-> UART transparent transmission implementation.
+  * @date    2026
+  *
+  * @copyright Copyright (c) 2026 Andriy Bratus <ambr75@gmail.com>
+  *            All rights reserved.
+  *
+  * @attention
+  * SPDX-License-Identifier: GPL-3.0-or-later
+  */
 #include <stddef.h>
 #include <stdint.h>
 #include "usb_uart_bridge.h"

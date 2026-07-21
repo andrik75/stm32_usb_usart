@@ -1,3 +1,15 @@
+/**
+  * @file    usb_rx_tx.c
+  * @author  Andriy Bratus <ambr75@gmail.com>
+  * @brief   Source file for USB Rx/Tx implementation.
+  * @date    2026
+  *
+  * @copyright Copyright (c) 2026 Andriy Bratus <ambr75@gmail.com>
+  *            All rights reserved.
+  *
+  * @attention
+  * SPDX-License-Identifier: GPL-3.0-or-later
+  */
 #include <stdbool.h>
 #include "ring_buffer.h"
 #include "usb_rx_tx.h"
@@ -22,7 +34,7 @@ __weak uint16_t USB_on_receive(uint8_t *data, uint16_t len)
     return len;
 }
 
-USBD_StatusTypeDef __int_USB_Receive(uint8_t *pbuf, uint32_t len) {
+USBD_StatusTypeDef USB_RX_TX_CDC_Receive_Callback(uint8_t *pbuf, uint32_t len) {
     p_usb_rx_buffer = pbuf; // Save link to internal USB HAL buffer
 
     // Check if there is enough space in our FIFO for this packet (max packet = 64 bytes)
@@ -72,20 +84,28 @@ void USB_Resume_RX() {
 }
 
 void USB_transmit(RingBuffer_t *p_usb_tx_fifo) {
-    /* Path 2: FIFO ➔ USB TX (PC) */
+    if (p_usb_tx_fifo == NULL) return;
+
     uint16_t usb_fifo_count = p_usb_tx_fifo->GetCount(p_usb_tx_fifo);
     if (usb_fifo_count > 0) {
-        static uint8_t temp_usb_buf[64]; // USB EndPoint packet size
-        uint16_t chunk_size = (usb_fifo_count > 64) ? 64 : usb_fifo_count;
-        
         USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+        
+        // Check if the USB hardware is ready to accept new data
         if (hcdc != NULL && hcdc->TxState == 0) {
+            static uint8_t temp_usb_buf[64];
+            uint16_t chunk_size = (usb_fifo_count > 64) ? 64 : usb_fifo_count;
+            
+            // Read data from the ring buffer
             uint16_t read_bytes = p_usb_tx_fifo->Read(p_usb_tx_fifo, temp_usb_buf, chunk_size);
+            
             if (read_bytes > 0) {
-                if (CDC_Transmit_FS(temp_usb_buf, read_bytes) == USBD_OK) {
-                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
+                // Attempt transmission over USB CDC
+                if (CDC_Transmit_FS(temp_usb_buf, read_bytes) != USBD_OK) {
+                    // Transmission failed (busy)! Roll back the tail pointer to prevent data loss
+                    p_usb_tx_fifo->RollbackTail(p_usb_tx_fifo, read_bytes);
+                    LOG_ERR("USB TX: busy, rolling back %d bytes", read_bytes);
                 } else {
-                    LOG_ERR("USB TX: transmission failed!");
+                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
                 }
             }
         }

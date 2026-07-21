@@ -277,7 +277,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   LOG_INFO("USB received %d bytes", *Len);
  
   // Let's pass the data into the receiver and process the result
-  USBD_StatusTypeDef result = __int_USB_Receive(Buf, *Len);
+  USBD_StatusTypeDef result = USB_RX_TX_CDC_Receive_Callback(Buf, *Len);
   if (result == USBD_OK)
   {
     USBD_CDC_ReceivePacket(&hUsbDeviceFS);

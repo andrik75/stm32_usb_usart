@@ -1,5 +1,17 @@
-#ifndef INC_BRIDGE_RING_BUFFER_H_
-#define INC_BRIDGE_RING_BUFFER_H_
+/**
+  * @file    ring_buffer.h
+  * @author  Andriy Bratus <ambr75@gmail.com>
+  * @brief   Header file for OOP Ring Buffer implementation.
+  * @date    2026
+  *
+  * @copyright Copyright (c) 2026 Andriy Bratus <ambr75@gmail.com>
+  *            All rights reserved.
+  *
+  * @attention
+  * SPDX-License-Identifier: GPL-3.0-or-later
+  */
+#ifndef INC_RING_BUFFER_H_
+#define INC_RING_BUFFER_H_
 
 #include <stdint.h>
 
@@ -19,6 +31,9 @@ struct RingBuffer {
     uint16_t (*GetCount)(RingBuffer_t *self);
     uint16_t (*GetFreeSpace)(RingBuffer_t *self);
     uint16_t (*GetSize)(RingBuffer_t *self);
+    void (*SetHead)(RingBuffer_t *self, uint16_t value);
+    void (*SetTail)(RingBuffer_t *self, uint16_t value);
+    void (*RollbackTail)(RingBuffer_t *self, uint16_t ldist); // Positive value of the ldist paramter means ldist bytes back
 };
 
 /**
@@ -26,4 +41,4 @@ struct RingBuffer {
  */
 void RingBuffer_Ctor(RingBuffer_t *self);
 
-#endif /* INC_BRIDGE_RING_BUFFER_H_ */
+#endif /* INC_RING_BUFFER_H_ */
