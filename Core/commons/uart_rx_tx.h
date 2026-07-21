@@ -14,6 +14,6 @@ void UART_RX_TX_Init(UART_HandleTypeDef *huart);
 /**
  * @brief Process UART transmission from FIFO.
  */
-void UART_Process_TX(RingBuffer_t *p_uart_tx_fifo);
+void UART_transmit(RingBuffer_t *p_uart_tx_fifo);
 
 #endif /* INC_BRIDGE_UART_H_ */

@@ -23,6 +23,6 @@ void USB_Resume_RX(void);
 /**
  * @brief Process USB TX transmission to PC.
  */
-void USB_Process_TX(RingBuffer_t *p_usb_tx_fifo);
+void USB_transmit(RingBuffer_t *p_usb_tx_fifo);
 
 #endif /* INC_BRIDGE_USB_H_ */

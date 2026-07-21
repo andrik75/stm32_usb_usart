@@ -48,7 +48,7 @@ void USB_UART_Bridge_Init(UART_HandleTypeDef *huart) {
 }
 
 void USB_UART_Bridge_Process(void) {
-    UART_Process_TX(&usb_rx_fifo);
+    UART_transmit(&usb_rx_fifo);
     USB_Resume_RX();
-    USB_Process_TX(&uart_rx_fifo);
+    USB_transmit(&uart_rx_fifo);
 }

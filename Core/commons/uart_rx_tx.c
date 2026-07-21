@@ -69,7 +69,7 @@ static void UART_TxCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-void UART_Process_TX(RingBuffer_t *p_uart_tx_fifo) {
+void UART_transmit(RingBuffer_t *p_uart_tx_fifo) {
     /* FIFO ➔ UART TX (DMA) */
     if (uart_tx_complete && p_uart_tx_fifo->GetCount(p_uart_tx_fifo) > 0) {
         uint16_t send_len = p_uart_tx_fifo->Read(p_uart_tx_fifo, tx_uart_active_buf, p_uart_tx_fifo->GetSize(p_uart_tx_fifo));

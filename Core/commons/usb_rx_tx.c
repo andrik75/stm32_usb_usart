@@ -71,7 +71,7 @@ void USB_Resume_RX() {
     }
 }
 
-void USB_Process_TX(RingBuffer_t *p_usb_tx_fifo) {
+void USB_transmit(RingBuffer_t *p_usb_tx_fifo) {
     /* Path 2: FIFO ➔ USB TX (PC) */
     uint16_t usb_fifo_count = p_usb_tx_fifo->GetCount(p_usb_tx_fifo);
     if (usb_fifo_count > 0) {
