@@ -34,6 +34,11 @@ __weak uint16_t USB_on_data_received(uint8_t *data, uint16_t len)
     return len;
 }
 
+__weak void USB_on_data_transmitted(USBD_HandleTypeDef *husb)
+{
+
+}
+
 USBD_StatusTypeDef USB_RX_TX_CDC_Receive_Callback(uint8_t *pbuf, uint32_t len) {
     p_usb_rx_buffer = pbuf; // Save link to internal USB HAL buffer
 
@@ -101,12 +106,13 @@ void USB_transmit(RingBuffer_t *p_usb_tx_fifo) {
             
             if (read_bytes > 0) {
                 // Attempt transmission over USB CDC
-                if (CDC_Transmit_FS(temp_usb_buf, read_bytes) != USBD_OK) {
+                if (CDC_Transmit_FS(temp_usb_buf, read_bytes) == USBD_OK) {
+                    USB_on_data_transmitted(&hUsbDeviceFS);
+                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
+                } else {
                     // Transmission failed (busy)! Roll back the tail pointer to prevent data loss
                     p_usb_tx_fifo->RollbackTail(p_usb_tx_fifo, read_bytes);
                     LOG_ERR("USB TX: busy, rolling back %d bytes", read_bytes);
-                } else {
-                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
                 }
             }
         }

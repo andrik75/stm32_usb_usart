@@ -16,6 +16,7 @@
 #include "stm32f1xx_hal.h"
 #include "uart_rx_tx.h"
 #include "debug_log.h"
+#include "stm32f1xx_hal_def.h"
 
 RingBuffer_t uart_rx_fifo;
 static UART_HandleTypeDef *p_huart = NULL;
@@ -47,6 +48,11 @@ void UART_RX_TX_Init(UART_HandleTypeDef *huart) {
 __weak uint16_t UART_on_data_received(uint8_t *data, uint16_t len)
 {
     return len;
+}
+
+__weak void UART_on_data_transmitted(UART_HandleTypeDef *huart)
+{
+
 }
 
 static void UART_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
@@ -87,6 +93,7 @@ static void UART_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 static void UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (p_huart != NULL && huart->Instance == p_huart->Instance) {
         uart_tx_complete = true;
+        UART_on_data_transmitted(huart);
     }
 }
 
@@ -97,13 +104,15 @@ void UART_transmit(RingBuffer_t *p_uart_tx_fifo) {
         if (send_len > 0) {
             uart_tx_complete = false;
             LOG_INFO("UART transmitting %d bytes", send_len);
-            if (HAL_UART_Transmit_DMA(p_huart, tx_uart_active_buf, send_len) != HAL_OK) {
+            if (HAL_UART_Transmit_DMA(p_huart, tx_uart_active_buf, send_len) == HAL_OK) {
+                LOG_INFO("UART transmitting succeeded");
+            }
+            else
+            {
                 uart_tx_complete = true; 
                 LOG_ERR("UART transmitting failed!");
             }
-            else
-                LOG_INFO("UART transmitting succeeded");
-        }
+         }
     }
 }
 
