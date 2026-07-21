@@ -121,7 +121,6 @@ static void FIFO_SetTail(RingBuffer_t *self, uint16_t value) {
    CRITICAL_SECTION() {
         self->tail = value;
     }
-    
 }
 
 static void FIFO_RollbackTail(RingBuffer_t *self, uint16_t ldist) {

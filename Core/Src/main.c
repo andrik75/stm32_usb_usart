@@ -157,17 +157,17 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-// Приклад перевизначення "хука" бізнес-логіки прямо в main.c:
+// An example of the business logic hook redefinition directly in the main.c:
 uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
-  // Приклад бізнес-логіки: перехоплення або заміна даних
+  // Business logic example: catching and replacing data
   for (uint16_t i = 0; i < len; i++) {
-    if (data[i] == 'a') data[i] = 'A'; // Модифікація на льоту
+    if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
   }
   return len;
 }
 
 uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len) {
-  // Можна залишити порожнім, або обробляти дані з UART перед відправкою на ПК
+  // It can be left empty or data can be processed there right before sending it to the PC
   return len; 
 }
 /* USER CODE END 4 */

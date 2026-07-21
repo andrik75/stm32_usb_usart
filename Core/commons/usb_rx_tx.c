@@ -78,6 +78,7 @@ void USB_Resume_RX() {
              
             // Forcefully restart polling USB endpoint, 
             // as hardware was "frozen" due to NAK status
+            USBD_CDC_SetRxBuffer(&hUsbDeviceFS, p_usb_rx_buffer); // actually I'm not sure whether it's exactly necessary there
             USBD_CDC_ReceivePacket(&hUsbDeviceFS);
         }
     }

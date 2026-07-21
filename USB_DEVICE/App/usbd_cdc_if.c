@@ -280,6 +280,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_StatusTypeDef result = USB_RX_TX_CDC_Receive_Callback(Buf, *Len);
   if (result == USBD_OK)
   {
+    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, Buf); // actually I'm not sure whether it's exactly necessary there
     USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   }
   return result;
