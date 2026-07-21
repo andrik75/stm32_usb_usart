@@ -158,7 +158,7 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 // An example of the business logic hook redefinition directly in the main.c:
-uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
+uint16_t USB_UART_Bridge_OnUSBDataReceived(uint8_t *data, uint16_t len) {
   // Business logic example: catching and replacing data
   for (uint16_t i = 0; i < len; i++) {
     if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
@@ -166,7 +166,7 @@ uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
   return len;
 }
 
-uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len) {
+uint16_t USB_UART_Bridge_OnUARTDataReceived(uint8_t *data, uint16_t len) {
   // It can be left empty or data can be processed there right before sending it to the PC
   return len; 
 }

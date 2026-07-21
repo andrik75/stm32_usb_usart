@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "stm32f1xx_hal.h"
 #include "uart_rx_tx.h"
 #include "debug_log.h"
 
@@ -24,22 +25,31 @@ static uint32_t old_pos = 0;
 static uint8_t tx_uart_active_buf[RING_BUFFER_SIZE];
 static volatile bool uart_tx_complete = true;
 
+static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+    // Initial launch of circular reception via DMA with Idle detection
+    HAL_StatusTypeDef result = HAL_UARTEx_ReceiveToIdle_DMA(p_huart, rx_raw_buf, UART_RX_RAW_SIZE);
+    if (result == HAL_OK)
+    {
+        __HAL_DMA_DISABLE_IT(p_huart->hdmarx, DMA_IT_HT); 
+    }
+    return result;
+}
+
 void UART_RX_TX_Init(UART_HandleTypeDef *huart) {
     p_huart = huart;
     old_pos = 0;
     uart_tx_complete = true;
 
-    // Initial launch of circular reception via DMA with Idle detection
-    HAL_UARTEx_ReceiveToIdle_DMA(p_huart, rx_raw_buf, UART_RX_RAW_SIZE);
-    __HAL_DMA_DISABLE_IT(p_huart->hdmarx, DMA_IT_HT); 
+    UART_Start_Receiving(p_huart, rx_raw_buf, UART_RX_RAW_SIZE);
 }
 
-__weak uint16_t UART_on_receive(uint8_t *data, uint16_t len)
+__weak uint16_t UART_on_data_received(uint8_t *data, uint16_t len)
 {
     return len;
 }
 
-static void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+static void UART_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     if (p_huart != NULL && huart->Instance == p_huart->Instance) {
         uint16_t write_pos = Size;
         if (write_pos != old_pos) {
@@ -59,7 +69,7 @@ static void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             }
 
             // Modification by business logic before writing to FIFO
-            uint16_t modified_len = UART_on_receive(temp_proc_buf, len);
+            uint16_t modified_len = UART_on_data_received(temp_proc_buf, len);
             if (modified_len > 0) {
                 uart_rx_fifo.Write(&uart_rx_fifo, temp_proc_buf, modified_len);
             }
@@ -70,12 +80,11 @@ static void UART_RxCallback(UART_HandleTypeDef *huart, uint16_t Size) {
             old_pos = 0;
         }
         
-        HAL_UARTEx_ReceiveToIdle_DMA(p_huart, rx_raw_buf, UART_RX_RAW_SIZE);
-        __HAL_DMA_DISABLE_IT(p_huart->hdmarx, DMA_IT_HT);
+        UART_Start_Receiving(p_huart, rx_raw_buf, UART_RX_RAW_SIZE);
     }
 }
 
-static void UART_TxCallback(UART_HandleTypeDef *huart) {
+static void UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (p_huart != NULL && huart->Instance == p_huart->Instance) {
         uart_tx_complete = true;
     }
@@ -101,11 +110,11 @@ void UART_transmit(RingBuffer_t *p_uart_tx_fifo) {
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     LOG_INFO("HAL_UARTEx_RxEventCallback");
-    UART_RxCallback(huart, Size);
+    UART_RxEventCallback(huart, Size);
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     LOG_INFO("HAL_UART_TxCpltCallback");
-    UART_TxCallback(huart);
+    UART_TxCpltCallback(huart);
 }

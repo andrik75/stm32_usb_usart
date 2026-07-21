@@ -28,25 +28,25 @@ extern RingBuffer_t usb_rx_fifo;
  *        You can modify the 'data' array on the fly.
  * @return New data length (if changed). 0 — discard packet.
  */
-__weak uint16_t USB_UART_Bridge_OnUSBReceive(uint8_t *data, uint16_t len) {
+__weak uint16_t USB_UART_Bridge_OnUSBDataReceived(uint8_t *data, uint16_t len) {
     // By default, just pass data further unchanged
     return len;
 }
 
-uint16_t USB_on_receive(uint8_t *data, uint16_t len) {
-    return USB_UART_Bridge_OnUSBReceive(data, (uint16_t)len);
+uint16_t USB_on_data_received(uint8_t *data, uint16_t len) {
+    return USB_UART_Bridge_OnUSBDataReceived(data, (uint16_t)len);
  }
 
 /**
  * @brief Data comes from UART here before being sent to USB to PC.
  */
-__weak uint16_t USB_UART_Bridge_OnUARTReceive(uint8_t *data, uint16_t len) {
+__weak uint16_t USB_UART_Bridge_OnUARTDataReceived(uint8_t *data, uint16_t len) {
     // By default, just pass data further unchanged
     return len;
 }
 
-uint16_t UART_on_receive(uint8_t *data, uint16_t len) {
-    return USB_UART_Bridge_OnUARTReceive(data, (uint16_t)len);
+uint16_t UART_on_data_received(uint8_t *data, uint16_t len) {
+    return USB_UART_Bridge_OnUARTDataReceived(data, (uint16_t)len);
  }
 
 // --- Implementation of public interface ---

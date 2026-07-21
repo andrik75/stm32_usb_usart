@@ -13,8 +13,8 @@
 #ifndef INC_USB_UART_BRIDGE_H_
 #define INC_USB_UART_BRIDGE_H_
 
-#include "stm32f1xx_hal.h"
-
+// Forward declaration of the UART_HandleTypeDef structure
+typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 // --- Public interface functions ---
 
 /**

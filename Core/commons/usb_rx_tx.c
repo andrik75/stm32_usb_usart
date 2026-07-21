@@ -29,7 +29,7 @@ void USB_RX_TX_Init(void) {
     p_usb_rx_buffer = NULL;
 }
 
-__weak uint16_t USB_on_receive(uint8_t *data, uint16_t len)
+__weak uint16_t USB_on_data_received(uint8_t *data, uint16_t len)
 {
     return len;
 }
@@ -45,7 +45,7 @@ USBD_StatusTypeDef USB_RX_TX_CDC_Receive_Callback(uint8_t *pbuf, uint32_t len) {
     if (free_space > 64) {
         LOG_INFO("USB RX: %d bytes received", len);
         // Space available — process and write
-        uint16_t modified_len = USB_on_receive(pbuf, (uint16_t)len); // Just call the handler to process the data
+        uint16_t modified_len = USB_on_data_received(pbuf, (uint16_t)len); // Just call the handler to process the data
         if (modified_len > 0) {
             usb_rx_fifo.Write(&usb_rx_fifo, pbuf, modified_len);
         }

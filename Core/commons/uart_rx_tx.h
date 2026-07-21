@@ -13,10 +13,12 @@
 #ifndef INC_UART_RX_TX_H_
 #define INC_UART_RX_TX_H_
 
-#include "stm32f1xx_hal.h"
 #include "ring_buffer.h"
 
 #define UART_RX_RAW_SIZE  256   // Size of the raw DMA buffer for UART
+
+// Forward declaration of the UART_HandleTypeDef structure
+typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
 /**
  * @brief Initialize UART interface component for the bridge.

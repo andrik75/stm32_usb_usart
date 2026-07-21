@@ -14,8 +14,8 @@
 #define INC_USB_RX_TX_H_
 
 #include <stdint.h>
-#include "ring_buffer.h"
 #include "usbd_def.h"
+#include "ring_buffer.h"
 
 /**
  * @brief Initialize USB interface component for the bridge.
