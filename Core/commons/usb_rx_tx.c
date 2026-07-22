@@ -11,9 +11,9 @@
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
 #include <stdbool.h>
+#include "config.h"
 #include "ring_buffer.h"
 #include "usb_rx_tx.h"
-#include "stm32f1xx_hal_def.h"
 #include "usbd_cdc_if.h" // Needed for CDC_Transmit_FS and USB descriptor
 #include "usbd_def.h"
 #include "debug_log.h"

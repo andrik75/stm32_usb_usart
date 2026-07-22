@@ -13,10 +13,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "stm32f1xx_hal.h"
+#include "config.h"
 #include "uart_rx_tx.h"
 #include "debug_log.h"
-#include "stm32f1xx_hal_def.h"
 
 RingBuffer_t uart_rx_fifo;
 static UART_HandleTypeDef *p_huart = NULL;
