@@ -15,12 +15,12 @@
 #include "ring_buffer.h"
 #include "critical_section.h"
 
-static void FIFO_Init(RingBuffer_t *self) {
-    self->head = 0;
-    self->tail = 0;
+static void RingBuffer_Init(RingBuffer_t *self) {
+    self->_head = 0;
+    self->_tail = 0;
 }
 
-static void FIFO_Write(RingBuffer_t *self, const uint8_t *data, uint16_t len) {
+static void RingBuffer_Write(RingBuffer_t *self, const uint8_t *data, uint16_t len) {
     if (len == 0 || data == NULL) 
         return;
 
@@ -30,8 +30,8 @@ static void FIFO_Write(RingBuffer_t *self, const uint8_t *data, uint16_t len) {
     // Frame the whole function into the CRITICAL_SECTION block in case of multithreading environment
     CRITICAL_SECTION()
     {
-        head = self->head; // Save to local variables because they are volatile
-        tail = self->tail;
+        head = self->_head; // Save to local variables because they are volatile
+        tail = self->_tail;
     }
 
     // 2. Calculate available space in the buffer
@@ -51,26 +51,26 @@ static void FIFO_Write(RingBuffer_t *self, const uint8_t *data, uint16_t len) {
     }
 
     // Fast copy for the first chunk
-    memcpy(&self->data[head], data, chunk1);
+    memcpy(&self->_data[head], data, chunk1);
 
     // 4. Chunk 2: wrap-around data to the beginning of the array [0]
     uint16_t chunk2 = to_write - chunk1;
     if (chunk2 > 0) {
-        memcpy(&self->data[0], &data[chunk1], chunk2);
+        memcpy(&self->_data[0], &data[chunk1], chunk2);
     }
 
     // 5. Update head pointer only once for the entire block!
-    self->head = (head + to_write) & (RING_BUFFER_SIZE - 1);
+    self->_head = (head + to_write) & (RING_BUFFER_SIZE - 1);
 }
 
-static uint16_t FIFO_Read_Block(RingBuffer_t *self, uint8_t *dest, uint16_t max_len) {
+static uint16_t RingBuffer_Read_Block(RingBuffer_t *self, uint8_t *dest, uint16_t max_len) {
     // Frame the whole function into the CRITICAL_SECTION block in case of multithreading environment
     uint16_t head;
     uint16_t tail;
     CRITICAL_SECTION()
     {
-        head = self->head; // Save to local variables because they are volatile
-        tail = self->tail;
+        head = self->_head; // Save to local variables because they are volatile
+        tail = self->_tail;
     }
      
     if (head == tail || max_len == 0) return 0;
@@ -85,62 +85,62 @@ static uint16_t FIFO_Read_Block(RingBuffer_t *self, uint8_t *dest, uint16_t max_
     }
     
     // Instant copy of the first chunk
-    memcpy(dest, &self->data[tail], chunk1);
+    memcpy(dest, &self->_data[tail], chunk1);
     
     // Chunk 2: if data wrapped around to the beginning of the array
     uint16_t chunk2 = to_read - chunk1;
     if (chunk2 > 0) {
-        memcpy(&dest[chunk1], &self->data[0], chunk2);
+        memcpy(&dest[chunk1], &self->_data[0], chunk2);
     }
     
     // Update the tail pointer only once for the whole block!
-    self->tail = (tail + to_read) & (RING_BUFFER_SIZE - 1);
+    self->_tail = (tail + to_read) & (RING_BUFFER_SIZE - 1);
     
     return to_read;
 }
 
-static uint16_t FIFO_GetCount(RingBuffer_t *self) {
-    return (self->head - self->tail) & (RING_BUFFER_SIZE - 1);
+static uint16_t RingBuffer_GetCount(RingBuffer_t *self) {
+    return (self->_head - self->_tail) & (RING_BUFFER_SIZE - 1);
 }
 
-static uint16_t FIFO_GetFreeSpace(RingBuffer_t *self) {
-    return RING_BUFFER_SIZE - FIFO_GetCount(self);
+static uint16_t RingBuffer_GetFreeSpace(RingBuffer_t *self) {
+    return RING_BUFFER_SIZE - RingBuffer_GetCount(self);
 }
 
-static uint16_t FIFO_GetSize(RingBuffer_t *self) {
+static uint16_t RingBuffer_GetSize(RingBuffer_t *self) {
     return RING_BUFFER_SIZE;
 }
 
-static void FIFO_SetHead(RingBuffer_t *self, uint16_t value) {
+static void RingBuffer_SetHead(RingBuffer_t *self, uint16_t value) {
     CRITICAL_SECTION() {
-        self->head = value;
+        self->_head = value;
     }
 }
 
-static void FIFO_SetTail(RingBuffer_t *self, uint16_t value) {
+static void RingBuffer_SetTail(RingBuffer_t *self, uint16_t value) {
    CRITICAL_SECTION() {
-        self->tail = value;
+        self->_tail = value;
     }
 }
 
-static void FIFO_RollbackTail(RingBuffer_t *self, uint16_t ldist) {
+static void RingBuffer_RollbackTail(RingBuffer_t *self, uint16_t ldist) {
    CRITICAL_SECTION() {
-        self->tail = (self->tail - ldist) & (RING_BUFFER_SIZE - 1);
+        self->_tail = (self->_tail - ldist) & (RING_BUFFER_SIZE - 1);
     }
 }
 
 void RingBuffer_Ctor(RingBuffer_t *self) {
     if (self == NULL) return;
 
-    self->Init = FIFO_Init;
-    self->Write = FIFO_Write;
-    self->Read = FIFO_Read_Block;
-    self->GetCount = FIFO_GetCount;
-    self->GetFreeSpace = FIFO_GetFreeSpace;
-    self->GetSize = FIFO_GetSize;
-    self->SetHead = FIFO_SetHead;
-    self->SetTail = FIFO_SetTail;
-    self->RollbackTail = FIFO_RollbackTail;
+    self->Init = RingBuffer_Init;
+    self->Write = RingBuffer_Write;
+    self->Read = RingBuffer_Read_Block;
+    self->GetCount = RingBuffer_GetCount;
+    self->GetFreeSpace = RingBuffer_GetFreeSpace;
+    self->GetSize = RingBuffer_GetSize;
+    self->SetHead = RingBuffer_SetHead;
+    self->SetTail = RingBuffer_SetTail;
+    self->RollbackTail = RingBuffer_RollbackTail;
 
     self->Init(self);
 }

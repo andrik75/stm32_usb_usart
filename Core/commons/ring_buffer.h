@@ -21,9 +21,9 @@ typedef struct RingBuffer RingBuffer_t;
 
 // Structure definition with OOP-style method function pointers
 struct RingBuffer {
-    uint8_t data[RING_BUFFER_SIZE];
-    volatile uint16_t head;
-    volatile uint16_t tail;
+    uint8_t _data[RING_BUFFER_SIZE];
+    volatile uint16_t _head;
+    volatile uint16_t _tail;
 
     void (*Init)(RingBuffer_t *self);
     void (*Write)(RingBuffer_t *self, const uint8_t *data, uint16_t len);
