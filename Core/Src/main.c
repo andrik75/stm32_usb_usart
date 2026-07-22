@@ -95,7 +95,9 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  USB_UART_Bridge_Init(&huart1); // Initialize the bridge to work with USART1
+  UARTDevice_t uart1_device;
+
+  USB_UART_Bridge_Init(&uart1_device, &huart1); // Initialize the bridge to work with USART1
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,7 +105,7 @@ int main(void)
   LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
-    USB_UART_Bridge_Process(); // Фонова асинхронна перекачка даних
+    USB_UART_Bridge_Process(&uart1_device); // Фонова асинхронна перекачка даних
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -159,8 +161,7 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 // An example of the business logic hook redefinition directly in the main.c:
-void USB_on_data_transmitted(USBD_HandleTypeDef *husb)
-{
+void USB_on_data_transmitted(USBD_HandleTypeDef *husb) {
   HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 
@@ -175,12 +176,11 @@ uint16_t USB_on_data_received(uint8_t *data, uint16_t len) {
   return len;
 }
 
-void UART_on_data_transmitted(UART_HandleTypeDef *huart)
-{
+void UARTDevice_on_data_transmitted(UART_HandleTypeDef *huart) {
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 
-uint16_t UART_on_data_received(uint8_t *data, uint16_t len) {
+uint16_t UARTDevice_on_data_received(UARTDevice_t *p_uart_device, uint8_t *data, uint16_t len) {
   // It can be left empty or data can be processed there right before sending it to the PC
   HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
 

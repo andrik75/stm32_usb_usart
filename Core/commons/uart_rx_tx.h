@@ -13,21 +13,40 @@
 #ifndef INC_UART_RX_TX_H_
 #define INC_UART_RX_TX_H_
 
+#include <stdbool.h>
+#include <stdint.h>
 #include "ring_buffer.h"
 
-#define UART_RX_RAW_SIZE  256   // Size of the raw DMA buffer for UART
+#define UART_RX_RAW_SIZE  (256)   // Size of the raw DMA buffer for UART
 
 // Forward declaration of the UART_HandleTypeDef structure
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
-/**
- * @brief Initialize UART interface component for the bridge.
- */
-void UART_RX_TX_Init(UART_HandleTypeDef *huart);
+typedef struct UARTDevice UARTDevice_t;
 
-/**
- * @brief Process UART transmission from FIFO.
- */
-void UART_transmit(RingBuffer_t *p_uart_tx_fifo);
+struct UARTDevice
+{
+    // private declarations
+    UART_HandleTypeDef *_p_huart;
+    uint8_t _rx_raw_buf[UART_RX_RAW_SIZE];
+    uint32_t _old_pos;
+
+    uint8_t _tx_uart_active_buf[RING_BUFFER_SIZE];
+    volatile bool _uart_tx_complete;
+
+    // public declarations
+    RingBuffer_t rx_fifo;
+    /**
+    * @brief Initialize UART interface component for the bridge.
+    */
+    void (*init)(UARTDevice_t *self, UART_HandleTypeDef *huart);
+    /**
+    * @brief Process UART transmission from the buffer.
+    */
+    void (*transmit)(UARTDevice_t *self, RingBuffer_t *p_uart_tx_fifo);
+    uint16_t (*on_data_received)(UARTDevice_t *self, uint8_t *p_data, uint16_t len);
+};
+
+void UARTDevice_Ctor(UARTDevice_t *self, UART_HandleTypeDef *p_huart);
 
 #endif /* INC_UART_RX_TX_H_ */

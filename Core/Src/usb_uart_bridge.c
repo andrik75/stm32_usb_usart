@@ -18,21 +18,19 @@
 #include "usb_rx_tx.h"
 
 // Shared global instances
-extern RingBuffer_t uart_rx_fifo;
 extern RingBuffer_t usb_rx_fifo;
 
 // --- Implementation of public interface ---
 
-void USB_UART_Bridge_Init(UART_HandleTypeDef *huart) {
+void USB_UART_Bridge_Init(UARTDevice_t *p_uart_device, UART_HandleTypeDef *p_huart) {
     RingBuffer_Ctor(&usb_rx_fifo); // ring buffer to receive data from USB and transmit them via UART
-    RingBuffer_Ctor(&uart_rx_fifo); // ring buffer to receive data from UART and transmit them via USB
-
+ 
     USB_RX_TX_Init();
-    UART_RX_TX_Init(huart);
+    UARTDevice_Ctor(p_uart_device, p_huart);
 }
 
-void USB_UART_Bridge_Process(void) {
-    UART_transmit(&usb_rx_fifo);
+void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device) {
+    p_uart_device->transmit(p_uart_device, &usb_rx_fifo);
     USB_Resume_RX();
-    USB_transmit(&uart_rx_fifo);
+    USB_transmit(&p_uart_device->rx_fifo);
 }
