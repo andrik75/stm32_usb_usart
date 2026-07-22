@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "stm32f1xx_hal_gpio.h"
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
