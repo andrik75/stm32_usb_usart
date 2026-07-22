@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include "usb_uart_bridge.h"
 #include "ring_buffer.h"
-#include "uart_rx_tx.h"
+#include "uart_device.h"
 #include "usb_rx_tx.h"
 
 // Shared global instances

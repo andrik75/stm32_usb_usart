@@ -1,5 +1,5 @@
 /**
-  * @file    uart_rx_tx.c
+  * @file    uart_device.c
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Source file for UART Rx/Tx DMA implementation.
   * @date    2026
@@ -15,7 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "config.h"
-#include "uart_rx_tx.h"
+#include "uart_device.h"
 #include "debug_log.h"
 
 static UARTDevice_t* RegisteredUARTDevices[MAX_UART_COUNT] = {0};

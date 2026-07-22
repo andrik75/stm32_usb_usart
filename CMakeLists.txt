@@ -49,7 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ThirdParty/RTT/SEGGER_RTT.c
     ThirdParty/RTT/SEGGER_RTT_printf.c
     Core/commons/ring_buffer.c
-    Core/commons/uart_rx_tx.c
+    Core/commons/uart_device.c
     Core/commons/usb_rx_tx.c
 )
 

@@ -1,5 +1,5 @@
 /**
-  * @file    uart_rx_tx.h
+  * @file    uart_device.h
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Header file for UART Rx/Tx DMA implementation.
   * @date    2026
@@ -10,8 +10,8 @@
   * @attention
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
-#ifndef INC_UART_RX_TX_H_
-#define INC_UART_RX_TX_H_
+#ifndef INC_UART_DEVICE_H_
+#define INC_UART_DEVICE_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -49,4 +49,4 @@ struct UARTDevice
 
 void UARTDevice_Ctor(UARTDevice_t *self, UART_HandleTypeDef *p_huart);
 
-#endif /* INC_UART_RX_TX_H_ */
+#endif /* INC_UART_DEVICE_H_ */

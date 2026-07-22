@@ -16,7 +16,7 @@
 // Forward declaration of the UART_HandleTypeDef structure
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
-#include "uart_rx_tx.h"
+#include "uart_device.h"
 
 // --- Public interface functions ---
 
