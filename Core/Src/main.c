@@ -159,27 +159,32 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 // An example of the business logic hook redefinition directly in the main.c:
+void USB_on_data_transmitted(USBD_HandleTypeDef *husb)
+{
+  HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
+}
+
 uint16_t USB_on_data_received(uint8_t *data, uint16_t len) {
   // Business logic example: catching and replacing data
   for (uint16_t i = 0; i < len; i++) {
     if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
   }
+  
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
+
   return len;
-}
-
-void USB_on_data_transmitted(USBD_HandleTypeDef *husb)
-{
-
-}
-
-uint16_t UART_on_data_received(uint8_t *data, uint16_t len) {
-  // It can be left empty or data can be processed there right before sending it to the PC
-  return len; 
 }
 
 void UART_on_data_transmitted(UART_HandleTypeDef *huart)
 {
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
+}
 
+uint16_t UART_on_data_received(uint8_t *data, uint16_t len) {
+  // It can be left empty or data can be processed there right before sending it to the PC
+  HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
+
+  return len; 
 }
 
 /* USER CODE END 4 */
