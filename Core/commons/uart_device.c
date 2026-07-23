@@ -17,6 +17,7 @@
 #include "config.h"
 #include "uart_device.h"
 #include "debug_log.h"
+#include "stm32f1xx_hal_def.h"
 
 static UARTDevice_t* RegisteredUARTDevices[MAX_UART_COUNT] = {0};
 
@@ -53,17 +54,11 @@ void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
     self->_old_pos = 0;
     self->_uart_tx_complete = true;
+    self->on_data_transmitted = NULL;
+    self->on_data_received = NULL;
     RingBuffer_Ctor(&self->rx_fifo);
 
     UART_Start_Receiving(self->_p_huart, self->_rx_raw_buf, UART_RX_RAW_SIZE);
-}
-
-__weak uint16_t UARTDevice_on_data_received(UARTDevice_t *p_uart_device, uint8_t *p_data, uint16_t len) {
-    return len;
-}
-
-__weak void UARTDevice_on_data_transmitted(UARTDevice_t *p_uart_device) {
-
 }
 
 static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_device, uint16_t Size) {
@@ -85,7 +80,12 @@ static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_device, uint16_t Siz
         }
 
         // Modification by business logic before writing to FIFO
-        uint16_t modified_len = p_uart_device->on_data_received(p_uart_device, temp_proc_buf, len);
+        uint16_t modified_len;
+        if (p_uart_device->on_data_received != NULL) {
+            modified_len = p_uart_device->on_data_received(p_uart_device, temp_proc_buf, len);
+        } else {
+            modified_len = len;
+        }
         if (modified_len > 0) {
             p_uart_device->rx_fifo.Write(&p_uart_device->rx_fifo, temp_proc_buf, modified_len);
         }
@@ -101,7 +101,9 @@ static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_device, uint16_t Siz
 
 static void UARTDevice_TxCpltCallback(UARTDevice_t* p_uart_device) {
     p_uart_device->_uart_tx_complete = true;
-    UARTDevice_on_data_transmitted(p_uart_device);
+    if (p_uart_device->on_data_transmitted != NULL) {
+        p_uart_device->on_data_transmitted(p_uart_device);
+    }
 }
 
 void UARTDevice_transmit(UARTDevice_t *p_uart_device, RingBuffer_t *p_uart_tx_fifo) {
@@ -148,7 +150,6 @@ void UARTDevice_Ctor(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
 
     self->init = UARTDevice_Init;
     self->transmit = UARTDevice_transmit;
-    self->on_data_received = UARTDevice_on_data_received;
  
     self->init(self, p_huart);
 }

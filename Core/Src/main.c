@@ -97,7 +97,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   UARTDevice_t uart1_device;
 
+  void UARTDevice_on_data_transmitted(UARTDevice_t *p_uart_device);
+  uint16_t UARTDevice_on_data_received(UARTDevice_t *p_uart_device, uint8_t *data, uint16_t len);
+
   USB_UART_Bridge_Init(&uart1_device, &huart1); // Initialize the bridge to work with USART1
+  uart1_device.on_data_transmitted = UARTDevice_on_data_transmitted;
+  uart1_device.on_data_received = UARTDevice_on_data_received;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -176,7 +181,7 @@ uint16_t USB_on_data_received(uint8_t *data, uint16_t len) {
   return len;
 }
 
-void UARTDevice_on_data_transmitted(UART_HandleTypeDef *huart) {
+void UARTDevice_on_data_transmitted(UARTDevice_t *p_uart_device) {
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 

@@ -44,6 +44,7 @@ struct UARTDevice
     * @brief Process UART transmission from the buffer.
     */
     void (*transmit)(UARTDevice_t *self, RingBuffer_t *p_uart_tx_fifo);
+    void (*on_data_transmitted)(UARTDevice_t *self);
     uint16_t (*on_data_received)(UARTDevice_t *self, uint8_t *p_data, uint16_t len);
 };
 
