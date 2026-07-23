@@ -16,7 +16,6 @@
 #include "config.h"
 #include "uart_driver.h"
 #include "debug_log.h"
-#include "stm32f1xx_hal_def.h"
 
 static UARTDevice_t* RegisteredUARTDevices[MAX_UART_COUNT] = {0};
 
