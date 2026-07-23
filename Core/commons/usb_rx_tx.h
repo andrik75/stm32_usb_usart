@@ -10,31 +10,52 @@
   * @attention
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
-  #ifndef INC_USB_RX_TX_H_
-#define INC_USB_RX_TX_H_
+  #ifndef INC_USB_DEVICE_H_
+#define INC_USB_DEVICE_H_
 
-#include <stdint.h>
+#include <stdbool.h>
 #include "usbd_def.h"
 #include "ring_buffer.h"
 
-/**
- * @brief Initialize USB interface component for the bridge.
- */
-void USB_RX_TX_Init(void);
+typedef enum {
+    USB_FS = 0,
+    USB_HS = 1
+} USBType;
 
-/**
- * @brief Data transfer from USB into the bridge. Called from CDC_Receive_FS.
- */
-USBD_StatusTypeDef USB_RX_TX_CDC_Receive_Callback(uint8_t *pbuf, uint32_t len);
+typedef struct _USBD_HandleTypeDef USBD_HandleTypeDef;
 
-/**
- * @brief Handle USB RX flow control unpausing.
- */
-void USB_Resume_RX(void);
+typedef struct USBDevice USBDevice_t;
 
-/**
- * @brief Process USB TX transmission to PC.
- */
-void USB_transmit(RingBuffer_t *p_usb_tx_fifo);
+struct USBDevice
+{
+    // private declarations
+    USBD_HandleTypeDef *_p_husb;
+    volatile bool _rx_paused;
+    uint8_t *_p_rx_raw_buffer; // Remember pointer to the stack's USB buffer
 
-#endif /* INC_USB_RX_TX_H_ */
+
+    // public declarations
+    USBType usb_type;
+    RingBuffer_t rx_fifo;
+    /**
+    * @brief Initialize USB interface component.
+    */
+    void (*init)(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
+    /**
+    * @brief Process USB transmission from the buffer.
+    */
+    void (*transmit)(USBDevice_t *self, RingBuffer_t *p_tx_fifo);
+    /**
+    * @brief Handle USB RX flow control unpausing.
+    */
+    void (*resume_rx)(USBDevice_t *self);
+    void (*_receive_packet_init)(USBDevice_t *self);
+    void (*on_data_transmitted)(USBDevice_t *self);
+    uint16_t (*on_data_received)(USBDevice_t *self, uint8_t *p_data, uint16_t len);
+};
+
+void USBDevice_Ctor(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
+
+USBD_StatusTypeDef USB_RX_TX_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) ;
+
+#endif /* INC_USB_DEVICE_H_ */

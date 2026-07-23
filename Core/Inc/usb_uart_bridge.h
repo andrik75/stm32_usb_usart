@@ -17,18 +17,13 @@
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
 #include "uart_device.h"
+#include "usb_rx_tx.h"
 
 // --- Public interface functions ---
 
 /**
- * @brief Bridge initialization. Starts DMA and resets buffers.
- * @param huart Pointer to UART handle structure (e.g., &huart1)
- */
-void USB_UART_Bridge_Init(UARTDevice_t *p_uart_device, UART_HandleTypeDef *p_huart);
-
-/**
  * @brief Background handler of the bridge. Must be called in main loop while(1).
  */
-void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device);
+void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device, USBDevice_t *p_usb_device);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */

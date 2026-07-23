@@ -22,9 +22,6 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-#include <stdint.h>
-#include "usbd_def.h"
-#include "debug_log.h"
 #include "usb_rx_tx.h"
 /* USER CODE END INCLUDE */
 
@@ -273,17 +270,8 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
-  // Log the length of the data received when debugging
-  LOG_INFO("USB received %d bytes", *Len);
- 
   // Let's pass the data into the receiver and process the result
-  USBD_StatusTypeDef result = USB_RX_TX_CDC_Receive_Callback(Buf, *Len);
-  if (result == USBD_OK)
-  {
-    USBD_CDC_SetRxBuffer(&hUsbDeviceFS, Buf); // actually I'm not sure whether it's exactly necessary there
-    USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  }
-  return result;
+  return USB_RX_TX_CDC_FS_Receive_Callback(Buf, *Len, 0);
   /* USER CODE END 6 */
 }
 

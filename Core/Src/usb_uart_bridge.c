@@ -14,23 +14,14 @@
 #include <stdint.h>
 #include "usb_uart_bridge.h"
 #include "ring_buffer.h"
-#include "uart_device.h"
-#include "usb_rx_tx.h"
 
 // Shared global instances
 extern RingBuffer_t usb_rx_fifo;
 
 // --- Implementation of public interface ---
 
-void USB_UART_Bridge_Init(UARTDevice_t *p_uart_device, UART_HandleTypeDef *p_huart) {
-    RingBuffer_Ctor(&usb_rx_fifo); // ring buffer to receive data from USB and transmit them via UART
- 
-    USB_RX_TX_Init();
-    UARTDevice_Ctor(p_uart_device, p_huart);
-}
-
-void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device) {
-    p_uart_device->transmit(p_uart_device, &usb_rx_fifo);
-    USB_Resume_RX();
-    USB_transmit(&p_uart_device->rx_fifo);
+void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device, USBDevice_t *p_usb_device) {
+    p_uart_device->transmit(p_uart_device, &p_usb_device->rx_fifo);
+    p_usb_device->resume_rx(p_usb_device);
+    p_usb_device->transmit(p_usb_device, &p_uart_device->rx_fifo);
 }

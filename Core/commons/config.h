@@ -41,9 +41,11 @@
 #include STR(MCU_HAL_HEADER)
 
 #if (MCU_FAMILY == stm32f1xx)
-    #define MAX_UART_COUNT 5
+    #define MAX_UART_COUNT (5)
+    #define MAX_USBD_COUNT (1)
 #else
-    #define MAX_UART_COUNT 1
+    #define MAX_UART_COUNT (1)
+    #define MAX_USBD_COUNT (1)
 #endif
 
 #endif /* INC_CONFIG_H_ */
