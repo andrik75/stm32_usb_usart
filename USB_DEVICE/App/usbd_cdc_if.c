@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-#include "usb_rx_tx.h"
+#include "usb_driver.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -271,7 +271,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
   // Let's pass the data into the receiver and process the result
-  return USB_RX_TX_CDC_FS_Receive_Callback(Buf, *Len, 0);
+  return USB_DRIVER_CDC_FS_Receive_Callback(Buf, *Len, 0);
   /* USER CODE END 6 */
 }
 

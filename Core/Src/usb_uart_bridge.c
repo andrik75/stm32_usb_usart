@@ -20,8 +20,8 @@ extern RingBuffer_t usb_rx_fifo;
 
 // --- Implementation of public interface ---
 
-void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device, USBDevice_t *p_usb_device) {
-    p_uart_device->transmit(p_uart_device, &p_usb_device->rx_fifo);
+void USB_UART_Bridge_Process(UARTDevice_t *p_uart_driver, USBDriver_t *p_usb_device) {
+    p_uart_driver->transmit(p_uart_driver, &p_usb_device->rx_fifo);
     p_usb_device->resume_rx(p_usb_device);
-    p_usb_device->transmit(p_usb_device, &p_uart_device->rx_fifo);
+    p_usb_device->transmit(p_usb_device, &p_uart_driver->rx_fifo);
 }

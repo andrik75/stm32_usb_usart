@@ -1,5 +1,5 @@
 /**
-  * @file    usb_rx_tx.c
+  * @file    usb_driver.c
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Source file for USB Rx/Tx implementation.
   * @date    2026
@@ -11,32 +11,32 @@
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
 #include "config.h"
-#include "usb_rx_tx.h"
+#include "usb_driver.h"
 #include "usbd_cdc_if.h" // Needed for CDC_Transmit_FS and USB descriptor
 #include "debug_log.h"
 
-static USBDevice_t* RegisteredUSBDevices[MAX_USBD_COUNT] = {0};
+static USBDriver_t* RegisteredUSBDrivers[MAX_USBD_COUNT] = {0};
 
-static bool Register_USBDevice(USBDevice_t* p_usb_device) {
+static bool Register_USBDriver(USBDriver_t* p_usb_device) {
     for (uint8_t index = 0; index < MAX_USBD_COUNT; ++index) {
-        if ((RegisteredUSBDevices[index] == NULL) || (RegisteredUSBDevices[index]->usb_type == p_usb_device->usb_type)) {
-            RegisteredUSBDevices[index] = p_usb_device;
+        if ((RegisteredUSBDrivers[index] == NULL) || (RegisteredUSBDrivers[index]->usb_type == p_usb_device->usb_type)) {
+            RegisteredUSBDrivers[index] = p_usb_device;
             return true;
         }
     }
     return false;
 }
 
-static USBDevice_t* Find_USBDevice(USBType usb_type) {
+static USBDriver_t* Find_USBDriver(USBType usb_type) {
     for (uint8_t index = 0; index < MAX_USBD_COUNT; ++index) {
-        if (RegisteredUSBDevices[index]->usb_type == usb_type) {
-            return RegisteredUSBDevices[index];
+        if (RegisteredUSBDrivers[index]->usb_type == usb_type) {
+            return RegisteredUSBDrivers[index];
         }
     }
     return NULL;
 }
 
-static void USBDevice_Init(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
+static void USBDriver_Init(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
     self->_rx_paused = false;
     self->_p_rx_raw_buffer = NULL;
     self->usb_type = usb_type;
@@ -44,18 +44,18 @@ static void USBDevice_Init(USBDevice_t *self, USBType usb_type, USBD_HandleTypeD
     RingBuffer_Ctor(&self->rx_fifo);
 }
 
-static void USBDevice_receive_packet_init(USBDevice_t *self) {
+static void USBDriver_receive_packet_init(USBDriver_t *self) {
     USBD_CDC_SetRxBuffer(self->_p_husb, self->_p_rx_raw_buffer); // actually I'm not sure whether it's exactly necessary there
     USBD_CDC_ReceivePacket(self->_p_husb);
 }
 
-USBD_StatusTypeDef USB_RX_TX_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) {
+USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) {
     // Log the length of the data received when debugging
     LOG_INFO("USB received %d bytes", len);
     
-    USBDevice_t* p_usb_device = Find_USBDevice(USB_FS);
+    USBDriver_t* p_usb_device = Find_USBDriver(USB_FS);
     if (p_usb_device == NULL) {
-        LOG_ERR("A registered USBDevice instance has not been found for the USB type");
+        LOG_ERR("A registered USBDriver instance has not been found for the USB type");
         return USBD_FAIL;
     }
  
@@ -96,7 +96,7 @@ USBD_StatusTypeDef USB_RX_TX_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len
     }
 }
 
-static void USBDevice_Resume_RX(USBDevice_t *self) {
+static void USBDriver_Resume_RX(USBDriver_t *self) {
     /* Resume reception from USB */
     if (self->_rx_paused && self->_p_rx_raw_buffer != NULL) {
         uint16_t free_space = self->rx_fifo.GetFreeSpace(&self->rx_fifo);
@@ -121,7 +121,7 @@ __weak uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len) {
     return USBD_FAIL;
 }
 
-static void USBDevice_transmit(USBDevice_t *self, RingBuffer_t *p_tx_fifo) {
+static void USBDriver_transmit(USBDriver_t *self, RingBuffer_t *p_tx_fifo) {
     if (p_tx_fifo == NULL) return;
 
     uint16_t usb_fifo_count = p_tx_fifo->GetCount(p_tx_fifo);
@@ -162,14 +162,14 @@ static void USBDevice_transmit(USBDevice_t *self, RingBuffer_t *p_tx_fifo) {
     }
 }
 
-void USBDevice_Ctor(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
+void USBDriver_Ctor(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
     if (self == NULL) return;
-    if (!Register_USBDevice(self)) return;
+    if (!Register_USBDriver(self)) return;
 
-    self->init = USBDevice_Init;
-    self->_receive_packet_init = USBDevice_receive_packet_init;
-    self->transmit = USBDevice_transmit;
-    self->resume_rx = USBDevice_Resume_RX;
+    self->init = USBDriver_Init;
+    self->_receive_packet_init = USBDriver_receive_packet_init;
+    self->transmit = USBDriver_transmit;
+    self->resume_rx = USBDriver_Resume_RX;
  
     self->init(self, usb_type, p_husb);
 }

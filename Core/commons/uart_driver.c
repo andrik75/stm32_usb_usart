@@ -1,5 +1,5 @@
 /**
-  * @file    uart_device.c
+  * @file    uart_driver.c
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Source file for UART Rx/Tx DMA implementation.
   * @date    2026
@@ -13,18 +13,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include "config.h"
-#include "uart_device.h"
+#include "uart_driver.h"
 #include "debug_log.h"
 #include "stm32f1xx_hal_def.h"
 
 static UARTDevice_t* RegisteredUARTDevices[MAX_UART_COUNT] = {0};
 
-static bool Register_UARTDevice(UARTDevice_t* p_uart_device) {
+static bool Register_UARTDevice(UARTDevice_t* p_uart_driver) {
     for (uint8_t index = 0; index < MAX_UART_COUNT; ++index) {
-        if ((RegisteredUARTDevices[index] == NULL) || (RegisteredUARTDevices[index]->_p_huart->Instance == p_uart_device->_p_huart->Instance)) {
-            RegisteredUARTDevices[index] = p_uart_device;
+        if ((RegisteredUARTDevices[index] == NULL) || (RegisteredUARTDevices[index]->_p_huart->Instance == p_uart_driver->_p_huart->Instance)) {
+            RegisteredUARTDevices[index] = p_uart_driver;
             return true;
         }
     }
@@ -61,48 +60,48 @@ static void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
     UART_Start_Receiving(self->_p_huart, self->_rx_raw_buf, UART_RX_RAW_SIZE);
 }
 
-static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_device, uint16_t Size) {
+static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_driver, uint16_t Size) {
     uint16_t write_pos = Size;
-    if (write_pos != p_uart_device->_old_pos) {
+    if (write_pos != p_uart_driver->_old_pos) {
         uint16_t len = 0;
         uint8_t temp_proc_buf[UART_RX_RAW_SIZE];
 
-        if (write_pos > p_uart_device->_old_pos) {
-            len = write_pos - p_uart_device->_old_pos;
-            memcpy(temp_proc_buf, &p_uart_device->_rx_raw_buf[p_uart_device->_old_pos], len);
+        if (write_pos > p_uart_driver->_old_pos) {
+            len = write_pos - p_uart_driver->_old_pos;
+            memcpy(temp_proc_buf, &p_uart_driver->_rx_raw_buf[p_uart_driver->_old_pos], len);
         } else {
-            len = UART_RX_RAW_SIZE - p_uart_device->_old_pos;
-            memcpy(temp_proc_buf, &p_uart_device->_rx_raw_buf[p_uart_device->_old_pos], len);
+            len = UART_RX_RAW_SIZE - p_uart_driver->_old_pos;
+            memcpy(temp_proc_buf, &p_uart_driver->_rx_raw_buf[p_uart_driver->_old_pos], len);
             if (write_pos > 0) {
-                memcpy(&temp_proc_buf[len], &p_uart_device->_rx_raw_buf[0], write_pos);
+                memcpy(&temp_proc_buf[len], &p_uart_driver->_rx_raw_buf[0], write_pos);
                 len += write_pos;
             }
         }
 
         // Modification by business logic before writing to FIFO
         uint16_t modified_len;
-        if (p_uart_device->on_data_received != NULL) {
-            modified_len = p_uart_device->on_data_received(p_uart_device, temp_proc_buf, len);
+        if (p_uart_driver->on_data_received != NULL) {
+            modified_len = p_uart_driver->on_data_received(p_uart_driver, temp_proc_buf, len);
         } else {
             modified_len = len;
         }
         if (modified_len > 0) {
-            p_uart_device->rx_fifo.Write(&p_uart_device->rx_fifo, temp_proc_buf, modified_len);
+            p_uart_driver->rx_fifo.Write(&p_uart_driver->rx_fifo, temp_proc_buf, modified_len);
         }
-        p_uart_device->_old_pos = write_pos;
+        p_uart_driver->_old_pos = write_pos;
     }
 
-    if (p_uart_device->_old_pos >= UART_RX_RAW_SIZE) {
-        p_uart_device->_old_pos = 0;
+    if (p_uart_driver->_old_pos >= UART_RX_RAW_SIZE) {
+        p_uart_driver->_old_pos = 0;
     }
     
-    UART_Start_Receiving(p_uart_device->_p_huart, p_uart_device->_rx_raw_buf, UART_RX_RAW_SIZE);
+    UART_Start_Receiving(p_uart_driver->_p_huart, p_uart_driver->_rx_raw_buf, UART_RX_RAW_SIZE);
 }
 
-static void UARTDevice_TxCpltCallback(UARTDevice_t* p_uart_device) {
-    p_uart_device->_uart_tx_complete = true;
-    if (p_uart_device->on_data_transmitted != NULL) {
-        p_uart_device->on_data_transmitted(p_uart_device);
+static void UARTDevice_TxCpltCallback(UARTDevice_t* p_uart_driver) {
+    p_uart_driver->_uart_tx_complete = true;
+    if (p_uart_driver->on_data_transmitted != NULL) {
+        p_uart_driver->on_data_transmitted(p_uart_driver);
     }
 }
 
@@ -129,18 +128,18 @@ static void UARTDevice_transmit(UARTDevice_t *self, RingBuffer_t *p_tx_fifo) {
 // It's invoked from the HAL
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *p_huart, uint16_t Size) {
     LOG_INFO("HAL_UARTEx_RxEventCallback");
-    UARTDevice_t* p_uart_device = Find_UARTDevice(p_huart);
-    if (p_uart_device != NULL) {
-        UARTDevice_RxEventCallback(p_uart_device, Size);
+    UARTDevice_t* p_uart_driver = Find_UARTDevice(p_huart);
+    if (p_uart_driver != NULL) {
+        UARTDevice_RxEventCallback(p_uart_driver, Size);
     }
 }
 
 // It's invoked from the HAL
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *p_huart) {
     LOG_INFO("HAL_UART_TxCpltCallback");
-    UARTDevice_t* p_uart_device = Find_UARTDevice(p_huart);
-    if (p_uart_device != NULL) {
-        UARTDevice_TxCpltCallback(p_uart_device);
+    UARTDevice_t* p_uart_driver = Find_UARTDevice(p_huart);
+    if (p_uart_driver != NULL) {
+        UARTDevice_TxCpltCallback(p_uart_driver);
     }
 }
 

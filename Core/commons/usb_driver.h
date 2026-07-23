@@ -1,5 +1,5 @@
 /**
-  * @file    usb_rx_tx.c
+  * @file    usb_driver.c
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Header file for USB Rx/Tx implementation.
   * @date    2026
@@ -10,8 +10,8 @@
   * @attention
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
-  #ifndef INC_USB_DEVICE_H_
-#define INC_USB_DEVICE_H_
+  #ifndef INC_USB_DRIVER_H_
+#define INC_USB_DRIVER_H_
 
 #include <stdbool.h>
 #include "usbd_def.h"
@@ -24,9 +24,9 @@ typedef enum {
 
 typedef struct _USBD_HandleTypeDef USBD_HandleTypeDef;
 
-typedef struct USBDevice USBDevice_t;
+typedef struct USBDriver USBDriver_t;
 
-struct USBDevice
+struct USBDriver
 {
     // private declarations
     USBD_HandleTypeDef *_p_husb;
@@ -40,22 +40,22 @@ struct USBDevice
     /**
     * @brief Initialize USB interface component.
     */
-    void (*init)(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
+    void (*init)(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
     /**
     * @brief Process USB transmission from the buffer.
     */
-    void (*transmit)(USBDevice_t *self, RingBuffer_t *p_tx_fifo);
+    void (*transmit)(USBDriver_t *self, RingBuffer_t *p_tx_fifo);
     /**
     * @brief Handle USB RX flow control unpausing.
     */
-    void (*resume_rx)(USBDevice_t *self);
-    void (*_receive_packet_init)(USBDevice_t *self);
-    void (*on_data_transmitted)(USBDevice_t *self);
-    uint16_t (*on_data_received)(USBDevice_t *self, uint8_t *p_data, uint16_t len);
+    void (*resume_rx)(USBDriver_t *self);
+    void (*_receive_packet_init)(USBDriver_t *self);
+    void (*on_data_transmitted)(USBDriver_t *self);
+    uint16_t (*on_data_received)(USBDriver_t *self, uint8_t *p_data, uint16_t len);
 };
 
-void USBDevice_Ctor(USBDevice_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
+void USBDriver_Ctor(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb);
 
-USBD_StatusTypeDef USB_RX_TX_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) ;
+USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) ;
 
-#endif /* INC_USB_DEVICE_H_ */
+#endif /* INC_USB_DRIVER_H_ */

@@ -16,14 +16,14 @@
 // Forward declaration of the UART_HandleTypeDef structure
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
-#include "uart_device.h"
-#include "usb_rx_tx.h"
+#include "uart_driver.h"
+#include "usb_driver.h"
 
 // --- Public interface functions ---
 
 /**
  * @brief Background handler of the bridge. Must be called in main loop while(1).
  */
-void USB_UART_Bridge_Process(UARTDevice_t *p_uart_device, USBDevice_t *p_usb_device);
+void USB_UART_Bridge_Process(UARTDevice_t *p_uart_driver, USBDriver_t *p_usb_device);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */
