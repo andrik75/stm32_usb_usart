@@ -50,7 +50,7 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
     return result;
 }
 
-void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
+static void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
     self->_old_pos = 0;
     self->_uart_tx_complete = true;
@@ -106,20 +106,20 @@ static void UARTDevice_TxCpltCallback(UARTDevice_t* p_uart_device) {
     }
 }
 
-void UARTDevice_transmit(UARTDevice_t *p_uart_device, RingBuffer_t *p_uart_tx_fifo) {
+static void UARTDevice_transmit(UARTDevice_t *self, RingBuffer_t *p_tx_fifo) {
     /* FIFO ➔ UART TX (DMA) */
-    if (p_uart_device->_uart_tx_complete && p_uart_tx_fifo->GetCount(p_uart_tx_fifo) > 0) {
-        uint16_t send_len = p_uart_tx_fifo->Read(p_uart_tx_fifo, p_uart_device->_tx_uart_active_buf, 
-            p_uart_tx_fifo->GetSize(p_uart_tx_fifo));
+    if (self->_uart_tx_complete && p_tx_fifo->GetCount(p_tx_fifo) > 0) {
+        uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_uart_active_buf, 
+            p_tx_fifo->GetSize(p_tx_fifo));
         if (send_len > 0) {
-            p_uart_device->_uart_tx_complete = false;
+            self->_uart_tx_complete = false;
             LOG_INFO("UART transmitting %d bytes", send_len);
-            if (HAL_UART_Transmit_DMA(p_uart_device->_p_huart, p_uart_device->_tx_uart_active_buf, send_len) == HAL_OK) {
+            if (HAL_UART_Transmit_DMA(self->_p_huart, self->_tx_uart_active_buf, send_len) == HAL_OK) {
                 LOG_INFO("UART transmitting succeeded");
             }
             else
             {
-                p_uart_device->_uart_tx_complete = true; 
+                self->_uart_tx_complete = true; 
                 LOG_ERR("UART transmitting failed!");
             }
          }

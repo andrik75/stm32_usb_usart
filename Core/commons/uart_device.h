@@ -37,13 +37,13 @@ struct UARTDevice
     // public declarations
     RingBuffer_t rx_fifo;
     /**
-    * @brief Initialize UART interface component for the bridge.
+    * @brief Initialize UART interface component.
     */
-    void (*init)(UARTDevice_t *self, UART_HandleTypeDef *huart);
+    void (*init)(UARTDevice_t *self, UART_HandleTypeDef *p_huart);
     /**
     * @brief Process UART transmission from the buffer.
     */
-    void (*transmit)(UARTDevice_t *self, RingBuffer_t *p_uart_tx_fifo);
+    void (*transmit)(UARTDevice_t *self, RingBuffer_t *p_tx_fifo);
     void (*on_data_transmitted)(UARTDevice_t *self);
     uint16_t (*on_data_received)(UARTDevice_t *self, uint8_t *p_data, uint16_t len);
 };
