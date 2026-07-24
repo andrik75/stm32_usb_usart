@@ -17,22 +17,22 @@
 #include "uart_driver.h"
 #include "debug_log.h"
 
-static UARTDevice_t* RegisteredUARTDevices[MAX_UART_COUNT] = {0};
+static UARTDriver_t* RegisteredUARTDrivers[MAX_UART_COUNT] = {0};
 
-static bool Register_UARTDevice(UARTDevice_t* p_uart_driver) {
+static bool Register_UARTDriver(UARTDriver_t* p_uart_driver) {
     for (uint8_t index = 0; index < MAX_UART_COUNT; ++index) {
-        if ((RegisteredUARTDevices[index] == NULL) || (RegisteredUARTDevices[index]->_p_huart->Instance == p_uart_driver->_p_huart->Instance)) {
-            RegisteredUARTDevices[index] = p_uart_driver;
+        if ((RegisteredUARTDrivers[index] == NULL) || (RegisteredUARTDrivers[index]->_p_huart->Instance == p_uart_driver->_p_huart->Instance)) {
+            RegisteredUARTDrivers[index] = p_uart_driver;
             return true;
         }
     }
     return false;
 }
 
-static UARTDevice_t* Find_UARTDevice(UART_HandleTypeDef *p_huart) {
+static UARTDriver_t* Find_UARTDriver(UART_HandleTypeDef *p_huart) {
     for (uint8_t index = 0; index < MAX_UART_COUNT; ++index) {
-        if (RegisteredUARTDevices[index]->_p_huart->Instance == p_huart->Instance) {
-            return RegisteredUARTDevices[index];
+        if (RegisteredUARTDrivers[index]->_p_huart->Instance == p_huart->Instance) {
+            return RegisteredUARTDrivers[index];
         }
     }
     return NULL;
@@ -48,7 +48,7 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
     return result;
 }
 
-static void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
+static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
     self->_old_pos = 0;
     self->_uart_tx_complete = true;
@@ -59,7 +59,7 @@ static void UARTDevice_Init(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
     UART_Start_Receiving(self->_p_huart, self->_rx_raw_buf, UART_RX_RAW_SIZE);
 }
 
-static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_driver, uint16_t Size) {
+static void UARTDriver_RxEventCallback(UARTDriver_t* p_uart_driver, uint16_t Size) {
     uint16_t write_pos = Size;
     if (write_pos != p_uart_driver->_old_pos) {
         uint16_t len = 0;
@@ -97,14 +97,14 @@ static void UARTDevice_RxEventCallback(UARTDevice_t* p_uart_driver, uint16_t Siz
     UART_Start_Receiving(p_uart_driver->_p_huart, p_uart_driver->_rx_raw_buf, UART_RX_RAW_SIZE);
 }
 
-static void UARTDevice_TxCpltCallback(UARTDevice_t* p_uart_driver) {
+static void UARTDriver_TxCpltCallback(UARTDriver_t* p_uart_driver) {
     p_uart_driver->_uart_tx_complete = true;
     if (p_uart_driver->on_data_transmitted != NULL) {
         p_uart_driver->on_data_transmitted(p_uart_driver);
     }
 }
 
-static void UARTDevice_transmit(UARTDevice_t *self, RingBuffer_t *p_tx_fifo) {
+static void UARTDriver_transmit(UARTDriver_t *self, RingBuffer_t *p_tx_fifo) {
     /* FIFO ➔ UART TX (DMA) */
     if (self->_uart_tx_complete && p_tx_fifo->GetCount(p_tx_fifo) > 0) {
         uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_uart_active_buf, 
@@ -127,27 +127,27 @@ static void UARTDevice_transmit(UARTDevice_t *self, RingBuffer_t *p_tx_fifo) {
 // It's invoked from the HAL
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *p_huart, uint16_t Size) {
     LOG_INFO("HAL_UARTEx_RxEventCallback");
-    UARTDevice_t* p_uart_driver = Find_UARTDevice(p_huart);
+    UARTDriver_t* p_uart_driver = Find_UARTDriver(p_huart);
     if (p_uart_driver != NULL) {
-        UARTDevice_RxEventCallback(p_uart_driver, Size);
+        UARTDriver_RxEventCallback(p_uart_driver, Size);
     }
 }
 
 // It's invoked from the HAL
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *p_huart) {
     LOG_INFO("HAL_UART_TxCpltCallback");
-    UARTDevice_t* p_uart_driver = Find_UARTDevice(p_huart);
+    UARTDriver_t* p_uart_driver = Find_UARTDriver(p_huart);
     if (p_uart_driver != NULL) {
-        UARTDevice_TxCpltCallback(p_uart_driver);
+        UARTDriver_TxCpltCallback(p_uart_driver);
     }
 }
 
-void UARTDevice_Ctor(UARTDevice_t *self, UART_HandleTypeDef *p_huart) {
+void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     if (self == NULL) return;
-    if (!Register_UARTDevice(self)) return;
+    if (!Register_UARTDriver(self)) return;
 
-    self->init = UARTDevice_Init;
-    self->transmit = UARTDevice_transmit;
+    self->init = UARTDriver_Init;
+    self->transmit = UARTDriver_transmit;
  
     self->init(self, p_huart);
 }

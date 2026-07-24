@@ -17,10 +17,10 @@
 
 static USBDriver_t* RegisteredUSBDrivers[MAX_USBD_COUNT] = {0};
 
-static bool Register_USBDriver(USBDriver_t* p_usb_device) {
+static bool Register_USBDriver(USBDriver_t* p_usb_driver) {
     for (uint8_t index = 0; index < MAX_USBD_COUNT; ++index) {
-        if ((RegisteredUSBDrivers[index] == NULL) || (RegisteredUSBDrivers[index]->usb_type == p_usb_device->usb_type)) {
-            RegisteredUSBDrivers[index] = p_usb_device;
+        if ((RegisteredUSBDrivers[index] == NULL) || (RegisteredUSBDrivers[index]->usb_type == p_usb_driver->usb_type)) {
+            RegisteredUSBDrivers[index] = p_usb_driver;
             return true;
         }
     }
@@ -53,41 +53,41 @@ USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t le
     // Log the length of the data received when debugging
     LOG_INFO("USB received %d bytes", len);
     
-    USBDriver_t* p_usb_device = Find_USBDriver(USB_FS);
-    if (p_usb_device == NULL) {
+    USBDriver_t* p_usb_driver = Find_USBDriver(USB_FS);
+    if (p_usb_driver == NULL) {
         LOG_ERR("A registered USBDriver instance has not been found for the USB type");
         return USBD_FAIL;
     }
  
-    p_usb_device->_p_rx_raw_buffer = pbuf; // Save link to internal USB HAL buffer
+    p_usb_driver->_p_rx_raw_buffer = pbuf; // Save link to internal USB HAL buffer
 
     // Check if there is enough space in our FIFO for this packet (max packet = 64 bytes)
     // Leave a safety margin (e.g. 128 bytes)
-    uint16_t free_space = p_usb_device->rx_fifo.GetFreeSpace(&p_usb_device->rx_fifo);
+    uint16_t free_space = p_usb_driver->rx_fifo.GetFreeSpace(&p_usb_driver->rx_fifo);
 
     // Allow reception only if guaranteed space exists for MAXIMUM packet (64 bytes)
     if (free_space > 64) {
         LOG_INFO("USB RX: %d bytes received", len);
         // Space available — process and write
         uint16_t modified_len;
-        if (p_usb_device->on_data_received != NULL) {
-            modified_len = p_usb_device->on_data_received(p_usb_device, pbuf, (uint16_t)len); // Just call the handler to process the data
+        if (p_usb_driver->on_data_received != NULL) {
+            modified_len = p_usb_driver->on_data_received(p_usb_driver, pbuf, (uint16_t)len); // Just call the handler to process the data
         } else {
             modified_len = len;
         }
         if (modified_len > 0) {
-            p_usb_device->rx_fifo.Write(&p_usb_device->rx_fifo, pbuf, modified_len);
+            p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
         }
         
-        p_usb_device->_receive_packet_init(p_usb_device);
+        p_usb_driver->_receive_packet_init(p_usb_driver);
         // Return 0 (USBD_OK), stack itself will call ReceivePacket inside usbd_cdc_if.c
         return USBD_OK; 
     } 
     else {
         // NO SPACE! Tell stack we are busy.
-        if (!p_usb_device->_rx_paused) {
+        if (!p_usb_driver->_rx_paused) {
             LOG_WARN("USB RX paused, buffer full!");
-            p_usb_device->_rx_paused = true;
+            p_usb_driver->_rx_paused = true;
         }
         
         // Return 1 (USBD_BUSY). Stack will NOT call ReceivePacket, 

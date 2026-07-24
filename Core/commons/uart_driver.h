@@ -22,9 +22,9 @@
 // Forward declaration of the UART_HandleTypeDef structure
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 
-typedef struct UARTDevice UARTDevice_t;
+typedef struct UARTDriver UARTDriver_t;
 
-struct UARTDevice
+struct UARTDriver
 {
     // private declarations
     UART_HandleTypeDef *_p_huart;
@@ -39,15 +39,15 @@ struct UARTDevice
     /**
     * @brief Initialize UART interface component.
     */
-    void (*init)(UARTDevice_t *self, UART_HandleTypeDef *p_huart);
+    void (*init)(UARTDriver_t *self, UART_HandleTypeDef *p_huart);
     /**
     * @brief Process UART transmission from the buffer.
     */
-    void (*transmit)(UARTDevice_t *self, RingBuffer_t *p_tx_fifo);
-    void (*on_data_transmitted)(UARTDevice_t *self);
-    uint16_t (*on_data_received)(UARTDevice_t *self, uint8_t *p_data, uint16_t len);
+    void (*transmit)(UARTDriver_t *self, RingBuffer_t *p_tx_fifo);
+    void (*on_data_transmitted)(UARTDriver_t *self);
+    uint16_t (*on_data_received)(UARTDriver_t *self, uint8_t *p_data, uint16_t len);
 };
 
-void UARTDevice_Ctor(UARTDevice_t *self, UART_HandleTypeDef *p_huart);
+void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart);
 
 #endif /* INC_UART_DRIVER_H_ */

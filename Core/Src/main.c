@@ -97,25 +97,25 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  UARTDevice_t uart1_device;
-  USBDriver_t usb_device;
+  UARTDriver_t uart1_driver;
+  USBDriver_t usb_driver;
 
   extern USBD_HandleTypeDef hUsbDeviceFS;
 
-  UARTDevice_Ctor(&uart1_device, &huart1);
-  USBDriver_Ctor(&usb_device, USB_FS, &hUsbDeviceFS);
+  UARTDriver_Ctor(&uart1_driver, &huart1);
+  USBDriver_Ctor(&usb_driver, USB_FS, &hUsbDeviceFS);
 
   // RX/TX event handlers forward declarations
-  void UARTDevice_on_data_transmitted(UARTDevice_t *p_uart_driver);
-  uint16_t UARTDevice_on_data_received(UARTDevice_t *p_uart_driver, uint8_t *data, uint16_t len);
-  void USBDriver_on_data_transmitted(USBDriver_t *p_usb_device);
-  uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_device, uint8_t *data, uint16_t len);
+  void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
+  uint16_t UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, uint16_t len);
+  void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
+  uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
 
-  uart1_device.on_data_transmitted = UARTDevice_on_data_transmitted;
-  uart1_device.on_data_received = UARTDevice_on_data_received;
+  uart1_driver.on_data_transmitted = UARTDriver_on_data_transmitted;
+  uart1_driver.on_data_received = UARTDriver_on_data_received;
 
-  usb_device.on_data_transmitted = USBDriver_on_data_transmitted;
-  usb_device.on_data_received = USBDriver_on_data_received;
+  usb_driver.on_data_transmitted = USBDriver_on_data_transmitted;
+  usb_driver.on_data_received = USBDriver_on_data_received;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,7 +123,7 @@ int main(void)
   LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
-    USB_UART_Bridge_Process(&uart1_device, &usb_device); // Asynchronous background data transfer
+    USB_UART_Bridge_Process(&uart1_driver, &usb_driver); // Asynchronous background data transfer
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -179,11 +179,11 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 // An example of the business logic hook redefinition directly in the main.c:
-void USBDriver_on_data_transmitted(USBDriver_t *p_usb_device) {
+void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver) {
   HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 
-uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_device, uint8_t *data, uint16_t len) {
+uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len) {
   // Business logic example: catching and replacing data
   for (uint16_t i = 0; i < len; i++) {
     if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
@@ -194,11 +194,11 @@ uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_device, uint8_t *data, ui
   return len;
 }
 
-void UARTDevice_on_data_transmitted(UARTDevice_t *p_uart_driver) {
+void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver) {
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 
-uint16_t UARTDevice_on_data_received(UARTDevice_t *p_uart_driver, uint8_t *data, uint16_t len) {
+uint16_t UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, uint16_t len) {
   // It can be left empty or data can be processed there right before sending it to the PC
   HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
 

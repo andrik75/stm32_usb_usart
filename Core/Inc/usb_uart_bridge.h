@@ -24,6 +24,6 @@ typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 /**
  * @brief Background handler of the bridge. Must be called in main loop while(1).
  */
-void USB_UART_Bridge_Process(UARTDevice_t *p_uart_driver, USBDriver_t *p_usb_device);
+void USB_UART_Bridge_Process(UARTDriver_t *p_uart_driver, USBDriver_t *p_usb_driver);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */
