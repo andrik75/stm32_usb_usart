@@ -31,8 +31,8 @@ struct UARTDriver
     uint8_t _rx_raw_buf[UART_RX_RAW_SIZE];
     uint32_t _old_pos;
 
-    uint8_t _tx_uart_active_buf[RING_BUFFER_SIZE];
-    volatile bool _uart_tx_complete;
+    uint8_t _tx_active_buf[RING_BUFFER_SIZE];
+    volatile bool _tx_completed;
 
     // public declarations
     RingBuffer_t rx_fifo;
@@ -43,7 +43,8 @@ struct UARTDriver
     /**
     * @brief Process UART transmission from the buffer.
     */
-    void (*transmit)(UARTDriver_t *self, RingBuffer_t *p_tx_fifo);
+    int32_t (*transmit_data)(UARTDriver_t *self, uint8_t *p_data, uint16_t len);
+    int32_t (*transmit)(UARTDriver_t *self, RingBuffer_t *p_tx_fifo);
     void (*on_data_transmitted)(UARTDriver_t *self);
     uint16_t (*on_data_received)(UARTDriver_t *self, uint8_t *p_data, uint16_t len);
 };

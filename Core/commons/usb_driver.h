@@ -32,6 +32,7 @@ struct USBDriver
     USBD_HandleTypeDef *_p_husb;
     volatile bool _rx_paused;
     uint8_t *_p_rx_raw_buffer; // Remember pointer to the stack's USB buffer
+    uint8_t _tx_active_buf[RING_BUFFER_SIZE];
 
 
     // public declarations
@@ -44,7 +45,8 @@ struct USBDriver
     /**
     * @brief Process USB transmission from the buffer.
     */
-    void (*transmit)(USBDriver_t *self, RingBuffer_t *p_tx_fifo);
+    int32_t (*transmit_data)(USBDriver_t *self, uint8_t *p_data, uint16_t len);
+    int32_t (*transmit)(USBDriver_t *self, RingBuffer_t *p_tx_fifo);
     /**
     * @brief Handle USB RX flow control unpausing.
     */

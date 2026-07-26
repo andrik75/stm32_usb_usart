@@ -51,7 +51,7 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
 static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
     self->_old_pos = 0;
-    self->_uart_tx_complete = true;
+    self->_tx_completed = true;
     self->on_data_transmitted = NULL;
     self->on_data_received = NULL;
     RingBuffer_Ctor(&self->rx_fifo);
@@ -98,30 +98,47 @@ static void UARTDriver_RxEventCallback(UARTDriver_t* p_uart_driver, uint16_t Siz
 }
 
 static void UARTDriver_TxCpltCallback(UARTDriver_t* p_uart_driver) {
-    p_uart_driver->_uart_tx_complete = true;
+    p_uart_driver->_tx_completed = true;
     if (p_uart_driver->on_data_transmitted != NULL) {
         p_uart_driver->on_data_transmitted(p_uart_driver);
     }
 }
 
-static void UARTDriver_transmit(UARTDriver_t *self, RingBuffer_t *p_tx_fifo) {
+static int32_t UARTDriver_transmit_data(UARTDriver_t *self, uint8_t *p_data, uint16_t len) {
     /* FIFO ➔ UART TX (DMA) */
-    if (self->_uart_tx_complete && p_tx_fifo->GetCount(p_tx_fifo) > 0) {
-        uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_uart_active_buf, 
-            p_tx_fifo->GetSize(p_tx_fifo));
-        if (send_len > 0) {
-            self->_uart_tx_complete = false;
-            LOG_INFO("UART transmitting %d bytes", send_len);
-            if (HAL_UART_Transmit_DMA(self->_p_huart, self->_tx_uart_active_buf, send_len) == HAL_OK) {
+    if (self->_tx_completed) {
+        if (len > 0) {
+            self->_tx_completed = false;
+            LOG_INFO("UART transmitting %d bytes", len);
+            if (HAL_UART_Transmit_DMA(self->_p_huart, p_data, len) == HAL_OK) {
                 LOG_INFO("UART transmitting succeeded");
+                return len;
             }
             else
             {
-                self->_uart_tx_complete = true; 
+                self->_tx_completed = true; 
                 LOG_ERR("UART transmitting failed!");
+                return 0;
             }
-         }
+        }
     }
+    return 0;
+}
+
+static int32_t UARTDriver_transmit(UARTDriver_t *self, RingBuffer_t *p_tx_fifo) {
+    /* FIFO ➔ UART TX (DMA) */
+    int32_t result = 0;
+    if (self->_tx_completed) {
+        uint16_t fifo_buf_count = p_tx_fifo->GetCount(p_tx_fifo);
+        if (fifo_buf_count > 0) {
+            uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
+            result = self->transmit_data(self, self->_tx_active_buf, send_len);
+            if (result - send_len > 0) {
+                p_tx_fifo->RollbackTail(p_tx_fifo, send_len - result);
+            }
+        }
+    }
+    return result;
 }
 
 // It's invoked from the HAL
@@ -147,6 +164,7 @@ void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     if (!Register_UARTDriver(self)) return;
 
     self->init = UARTDriver_Init;
+    self->transmit_data = UARTDriver_transmit_data;
     self->transmit = UARTDriver_transmit;
  
     self->init(self, p_huart);

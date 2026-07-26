@@ -14,6 +14,7 @@
 #include "usb_driver.h"
 #include "usbd_cdc_if.h" // Needed for CDC_Transmit_FS and USB descriptor
 #include "debug_log.h"
+#include <stdint.h>
 
 static USBDriver_t* RegisteredUSBDrivers[MAX_USBD_COUNT] = {0};
 
@@ -121,45 +122,60 @@ __weak uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len) {
     return USBD_FAIL;
 }
 
-static void USBDriver_transmit(USBDriver_t *self, RingBuffer_t *p_tx_fifo) {
-    if (p_tx_fifo == NULL) return;
-
-    uint16_t usb_fifo_count = p_tx_fifo->GetCount(p_tx_fifo);
-    if (usb_fifo_count > 0) {
+static int32_t USBDriver_transmit_data(USBDriver_t *self, uint8_t *p_data, uint16_t len) {
+    int32_t result = 0;
+    if (len > 0) {
         USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)self->_p_husb->pClassData;
         
-        // Check if the USB hardware is ready to accept new data
-        if (hcdc != NULL && hcdc->TxState == 0) {
-            static uint8_t temp_usb_buf[64];
-            uint16_t chunk_size = (usb_fifo_count > 64) ? 64 : usb_fifo_count;
-            
-            // Read data from the ring buffer
-            uint16_t read_bytes = p_tx_fifo->Read(p_tx_fifo, temp_usb_buf, chunk_size);
+        if (hcdc != NULL) {
             uint8_t transmit_result;
-            if (read_bytes > 0) {
+            while (len > 0) {
+                uint16_t chunk_size = (len > 64) ? 64 : len;
+                transmit_result = USBD_BUSY;
                 // Attempt transmission over USB CDC
-                switch (self->usb_type) {
-                    case USB_FS:
-                    transmit_result = CDC_Transmit_FS(temp_usb_buf, read_bytes);
-                    break;
+                // Check if the USB hardware is ready to accept new data
+                if (hcdc->TxState == 0) {
+                    switch (self->usb_type) {
+                        case USB_FS:
+                        transmit_result = CDC_Transmit_FS(p_data + result, chunk_size);
+                        break;
 
-                    case USB_HS:
-                    transmit_result = CDC_Transmit_HS(temp_usb_buf, read_bytes);
-                    break;
+                        case USB_HS:
+                        transmit_result = CDC_Transmit_HS(p_data + result, chunk_size);
+                        break;
+                    }
                 }
+
                 if (transmit_result == USBD_OK) {
+                    result += chunk_size;
                     if (self->on_data_transmitted != NULL) {
                         self->on_data_transmitted(self);
-                    }
-                    LOG_INFO("USB TX: %d bytes transmitted", read_bytes);
+                    LOG_INFO("USB TX: %d bytes transmitted", chunk_size);
                 } else {
-                    // Transmission failed (busy)! Roll back the tail pointer to prevent data loss
-                    p_tx_fifo->RollbackTail(p_tx_fifo, read_bytes);
-                    LOG_ERR("USB TX: busy, rolling back %d bytes", read_bytes);
+                    // Transmission failed (busy)!
+                    LOG_ERR("USB TX: Busy");
+                    break;
                 }
+                len -= chunk_size;
             }
         }
     }
+    }
+    return result;
+}
+
+static int32_t USBDriver_transmit(USBDriver_t *self, RingBuffer_t *p_tx_fifo) {
+    int32_t result = 0;
+
+    uint16_t fifo_buf_count = p_tx_fifo->GetCount(p_tx_fifo);
+    if (fifo_buf_count > 0) {
+        uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
+        result = self->transmit_data(self, self->_tx_active_buf, send_len);
+        if (result - send_len > 0) {
+            p_tx_fifo->RollbackTail(p_tx_fifo, send_len - result);
+         }
+    }
+    return result;
 }
 
 void USBDriver_Ctor(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
@@ -168,6 +184,7 @@ void USBDriver_Ctor(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_h
 
     self->init = USBDriver_Init;
     self->_receive_packet_init = USBDriver_receive_packet_init;
+    self->transmit_data = USBDriver_transmit_data;
     self->transmit = USBDriver_transmit;
     self->resume_rx = USBDriver_Resume_RX;
  
