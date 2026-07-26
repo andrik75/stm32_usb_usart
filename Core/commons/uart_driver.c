@@ -50,7 +50,6 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
 
 static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
-    self->_old_pos = 0;
     self->_tx_completed = true;
     self->on_data_transmitted = NULL;
     self->on_data_received = NULL;
@@ -60,38 +59,13 @@ static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
 }
 
 static void UARTDriver_RxEventCallback(UARTDriver_t* p_uart_driver, uint16_t Size) {
-    uint16_t write_pos = Size;
-    if (write_pos != p_uart_driver->_old_pos) {
-        uint16_t len = 0;
-        uint8_t temp_proc_buf[UART_RX_RAW_SIZE];
-
-        if (write_pos > p_uart_driver->_old_pos) {
-            len = write_pos - p_uart_driver->_old_pos;
-            memcpy(temp_proc_buf, &p_uart_driver->_rx_raw_buf[p_uart_driver->_old_pos], len);
-        } else {
-            len = UART_RX_RAW_SIZE - p_uart_driver->_old_pos;
-            memcpy(temp_proc_buf, &p_uart_driver->_rx_raw_buf[p_uart_driver->_old_pos], len);
-            if (write_pos > 0) {
-                memcpy(&temp_proc_buf[len], &p_uart_driver->_rx_raw_buf[0], write_pos);
-                len += write_pos;
-            }
-        }
-
-        // Modification by business logic before writing to FIFO
-        uint16_t modified_len;
-        if (p_uart_driver->on_data_received != NULL) {
-            modified_len = p_uart_driver->on_data_received(p_uart_driver, temp_proc_buf, len);
-        } else {
-            modified_len = len;
-        }
-        if (modified_len > 0) {
-            p_uart_driver->rx_fifo.Write(&p_uart_driver->rx_fifo, temp_proc_buf, modified_len);
-        }
-        p_uart_driver->_old_pos = write_pos;
+    // Modification by business logic before writing to FIFO
+    uint16_t modified_len = Size;
+    if (p_uart_driver->on_data_received != NULL) {
+        modified_len = p_uart_driver->on_data_received(p_uart_driver, p_uart_driver->_rx_raw_buf, modified_len);
     }
-
-    if (p_uart_driver->_old_pos >= UART_RX_RAW_SIZE) {
-        p_uart_driver->_old_pos = 0;
+    if (modified_len > 0) {
+        p_uart_driver->rx_fifo.Write(&p_uart_driver->rx_fifo, p_uart_driver->_rx_raw_buf, modified_len);
     }
     
     UART_Start_Receiving(p_uart_driver->_p_huart, p_uart_driver->_rx_raw_buf, UART_RX_RAW_SIZE);

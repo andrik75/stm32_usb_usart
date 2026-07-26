@@ -29,7 +29,6 @@ struct UARTDriver
     // private declarations
     UART_HandleTypeDef *_p_huart;
     uint8_t _rx_raw_buf[UART_RX_RAW_SIZE];
-    uint32_t _old_pos;
 
     uint8_t _tx_active_buf[RING_BUFFER_SIZE];
     volatile bool _tx_completed;
