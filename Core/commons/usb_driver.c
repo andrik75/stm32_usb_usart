@@ -68,12 +68,12 @@ USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t le
         modified_len = len;
     }
     // Check if there is enough space in our FIFO for this packet (max packet = 64 bytes)
-    // Leave a safety margin (e.g. 128 bytes)
-    uint16_t free_space = p_usb_driver->rx_fifo.GetFreeSpace(&p_usb_driver->rx_fifo);
-    // Space available — process and write
-    if (free_space >= modified_len) {
+    if (p_usb_driver->rx_fifo.GetFreeSpace(&p_usb_driver->rx_fifo) >= modified_len) {
+        // Space available — process and write
         LOG_INFO("USB RX: Add %d bytes to the ring buffer", modified_len);
-        p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
+        if (p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len) - modified_len < 0) {
+            LOG_ERR("USB RX: Some bytes were lost when writing into the ring buffer!");
+        }
         p_usb_driver->_receive_packet_init(p_usb_driver);
         // Allow reception only if guaranteed space exists for the packet lenth
         // Return 0 (USBD_OK), stack itself will call ReceivePacket inside usbd_cdc_if.c
