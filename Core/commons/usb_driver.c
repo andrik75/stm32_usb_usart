@@ -68,7 +68,6 @@ USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t le
 
     // Allow reception only if guaranteed space exists for MAXIMUM packet (64 bytes)
     if (free_space > 64) {
-        LOG_INFO("USB RX: %d bytes received", len);
         // Space available — process and write
         uint16_t modified_len;
         if (p_usb_driver->on_data_received != NULL) {
