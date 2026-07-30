@@ -49,8 +49,13 @@ static void USBDriver_receive_packet_init(USBDriver_t *self) {
     USBD_CDC_SetRxBuffer(self->_p_husb, self->_p_rx_raw_buffer); // actually I'm not sure whether it's exactly necessary there
     USBD_CDC_ReceivePacket(self->_p_husb);
 }
+volatile uint32_t USB_Rx_Total_Counter = 0;
+volatile uint32_t USB_Rx_Consumed_Counter = 0;
 
 USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t len, uint8_t usb_type) {
+
+    USB_Rx_Total_Counter += len;
+
     // Log the length of the data received when debugging
     LOG_INFO("USB received %d bytes", len);
     
@@ -73,7 +78,10 @@ USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t le
     // Space available — process and write
     if (free_space >= modified_len) {
         LOG_INFO("USB RX: Add %d bytes to the ring buffer", modified_len);
-        p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
+        uint16_t bytes_written = p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
+
+        USB_Rx_Consumed_Counter += bytes_written;
+
         p_usb_driver->_receive_packet_init(p_usb_driver);
         // Allow reception only if guaranteed space exists for the packet lenth
         // Return 0 (USBD_OK), stack itself will call ReceivePacket inside usbd_cdc_if.c

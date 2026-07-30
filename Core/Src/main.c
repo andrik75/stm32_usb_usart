@@ -121,9 +121,14 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   LOG_INFO("%s", "Main loop is starting...");
+  extern volatile uint32_t USB_Rx_Total_Counter;
+  extern volatile uint32_t USB_Rx_Consumed_Counter;
+
   while (1)
   {
+    // usb_driver.transmit_data(&usb_driver, (uint8_t*)TX_BUFF, sizeof(TX_BUFF));
     USB_UART_Bridge_Process(&uart1_driver, &usb_driver); // Asynchronous background data transfer
+    LOG_INFO("USB Rx: Total %d received, %d consumed", USB_Rx_Total_Counter, USB_Rx_Consumed_Counter);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -185,9 +190,9 @@ void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver) {
 
 uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len) {
   // Business logic example: catching and replacing data
-  for (uint16_t i = 0; i < len; i++) {
-    if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
-  }
+  // for (uint16_t i = 0; i < len; i++) {
+  //   if (data[i] == 'a') data[i] = 'A'; // On the fly modifiction
+  // }
   
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
 
