@@ -123,7 +123,11 @@ int main(void)
   LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
-    USB_UART_Bridge_Process(&uart1_driver, &usb_driver); // Asynchronous background data transfer
+    uart1_driver.transmit(&uart1_driver, &uart1_driver.rx_fifo); // Uncoment it to test the UART port as software loopback port
+    usb_driver.resume_rx(&usb_driver); // Uncoment it to test the USB port as software loopback port
+    usb_driver.transmit(&usb_driver, &usb_driver.rx_fifo); // Uncoment it to test the USB port as software loopback port
+
+    // USB_UART_Bridge_Process(&uart1_driver, &usb_driver); // Asynchronous background data transfer
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

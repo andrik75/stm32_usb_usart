@@ -16,6 +16,7 @@
 #include "SEGGER_RTT.h"
 #include "config.h"
 #include "uart_driver.h"
+#include "critical_section.h"
 #include "debug_log.h"
 
 static UARTDriver_t* RegisteredUARTDrivers[MAX_UART_COUNT] = {0};
@@ -52,24 +53,27 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
 static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     self->_p_huart = p_huart;
     self->rx_idle = true;
-    self->_dma_old_pos = 0;
     self->_tx_completed = true;
     self->on_data_transmitted = NULL;
     self->on_data_received = NULL;
     RingBuffer_Ctor(&self->rx_fifo);
 
-    UART_Start_Receiving(self->_p_huart, self->rx_fifo._data, self->rx_fifo.GetSize(&self->rx_fifo));
+    UART_Start_Receiving(self->_p_huart, self->rx_fifo._data, self->rx_fifo.GetCapacity(&self->rx_fifo));
 }
 
 static void UARTDriver_RxEventCallback(UARTDriver_t* p_uart_driver, uint16_t dma_curr_pos) {
     // Modification by business logic before writing to FIFO
     p_uart_driver->rx_idle = false;
-    int16_t last_chunk_size = (int16_t)(dma_curr_pos - p_uart_driver->_dma_old_pos);
-    p_uart_driver->rx_fifo._head += last_chunk_size;
-    p_uart_driver->rx_fifo._head %= p_uart_driver->rx_fifo.GetSize(&p_uart_driver->rx_fifo);
-    if (last_chunk_size < 0) {
+    int16_t last_chunk_size = (int16_t)(dma_curr_pos - p_uart_driver->rx_fifo._head);
+    if (last_chunk_size >= 0) {
+        if (p_uart_driver->on_data_received != NULL) {  
+            p_uart_driver->on_data_received(p_uart_driver, p_uart_driver->rx_fifo._data + p_uart_driver->rx_fifo._head, last_chunk_size);
+        }
+    } else {
         LOG_WARN("UART Rx chunk size is negative!");
     }
+    p_uart_driver->rx_fifo.SetHead(&p_uart_driver->rx_fifo, dma_curr_pos);
+
     switch (p_uart_driver->_p_huart->RxEventType) {
         case HAL_UART_RXEVENT_TC:    /*!< RxEvent linked to Transfer Complete event */
             LOG_INFO("HAL_UART_RXEVENT_TC");
@@ -82,10 +86,6 @@ static void UARTDriver_RxEventCallback(UARTDriver_t* p_uart_driver, uint16_t dma
             LOG_INFO("HAL_UART_RXEVENT_IDLE");
             break;
     }
-    if (p_uart_driver->on_data_received != NULL) {  
-        p_uart_driver->on_data_received(p_uart_driver, p_uart_driver->rx_fifo._data + p_uart_driver->_dma_old_pos, last_chunk_size);
-    }
-    p_uart_driver->_dma_old_pos = dma_curr_pos % p_uart_driver->rx_fifo.GetSize(&p_uart_driver->rx_fifo);
 }
 
 static void UARTDriver_TxCpltCallback(UARTDriver_t* p_uart_driver) {

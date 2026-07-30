@@ -31,7 +31,6 @@ struct UARTDriver
 
     uint8_t _tx_active_buf[RING_BUFFER_SIZE];
     volatile bool _tx_completed;
-    volatile uint16_t _dma_old_pos;
 
     // public declarations
     RingBuffer_t rx_fifo;
