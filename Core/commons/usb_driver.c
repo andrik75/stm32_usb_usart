@@ -61,33 +61,29 @@ USBD_StatusTypeDef USB_DRIVER_CDC_FS_Receive_Callback(uint8_t *pbuf, uint32_t le
     }
  
     p_usb_driver->_p_rx_raw_buffer = pbuf; // Save link to internal USB HAL buffer
-
+    uint16_t modified_len;
+    if (p_usb_driver->on_data_received != NULL) {
+        modified_len = p_usb_driver->on_data_received(p_usb_driver, pbuf, (uint16_t)len); // Just call the handler to process the data
+    } else {
+        modified_len = len;
+    }
     // Check if there is enough space in our FIFO for this packet (max packet = 64 bytes)
     // Leave a safety margin (e.g. 128 bytes)
     uint16_t free_space = p_usb_driver->rx_fifo.GetFreeSpace(&p_usb_driver->rx_fifo);
-
-    // Allow reception only if guaranteed space exists for MAXIMUM packet (64 bytes)
-    if (free_space > 64) {
-        // Space available — process and write
-        uint16_t modified_len;
-        if (p_usb_driver->on_data_received != NULL) {
-            modified_len = p_usb_driver->on_data_received(p_usb_driver, pbuf, (uint16_t)len); // Just call the handler to process the data
-        } else {
-            modified_len = len;
-        }
-        if (modified_len > 0) {
-            p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
-        }
-        
+    // Space available — process and write
+    if (free_space >= modified_len) {
+        LOG_INFO("USB RX: Add %d bytes to the ring buffer", modified_len);
+        p_usb_driver->rx_fifo.Write(&p_usb_driver->rx_fifo, pbuf, modified_len);
         p_usb_driver->_receive_packet_init(p_usb_driver);
+        // Allow reception only if guaranteed space exists for the packet lenth
         // Return 0 (USBD_OK), stack itself will call ReceivePacket inside usbd_cdc_if.c
         return USBD_OK; 
     } 
     else {
         // NO SPACE! Tell stack we are busy.
         if (!p_usb_driver->_rx_paused) {
-            LOG_WARN("USB RX paused, buffer full!");
             p_usb_driver->_rx_paused = true;
+            LOG_WARN("USB RX paused, buffer full!");
         }
         
         // Return 1 (USBD_BUSY). Stack will NOT call ReceivePacket, 
@@ -102,7 +98,7 @@ static void USBDriver_Resume_RX(USBDriver_t *self) {
         uint16_t free_space = self->rx_fifo.GetFreeSpace(&self->rx_fifo);
         
         // Resume reception if enough space freed up (e.g., more than half the buffer)
-        if (free_space > (self->rx_fifo.GetSize(&self->rx_fifo) / 2)) {
+        if (free_space >= 64) {
             self->_rx_paused = false;
             LOG_WARN("USB RX restored");
              
@@ -165,9 +161,11 @@ static int32_t USBDriver_transmit_data(USBDriver_t *self, uint8_t *p_data, uint1
 
 static int32_t USBDriver_transmit(USBDriver_t *self, RingBuffer_t *p_tx_fifo) {
     int32_t result = 0;
+    uint16_t max_len = 128;
 
     uint16_t fifo_buf_count = p_tx_fifo->GetCount(p_tx_fifo);
     if (fifo_buf_count > 0) {
+        fifo_buf_count = fifo_buf_count <= max_len ? fifo_buf_count : max_len;
         uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
         result = self->transmit_data(self, self->_tx_active_buf, send_len);
         if (result - send_len > 0) {
