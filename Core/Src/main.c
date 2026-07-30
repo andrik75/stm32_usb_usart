@@ -107,7 +107,7 @@ int main(void)
 
   // RX/TX event handlers forward declarations
   void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
-  uint16_t UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, uint16_t len);
+  void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len);
   void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
   uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
 
@@ -198,11 +198,12 @@ void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver) {
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
 
-uint16_t UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, uint16_t len) {
+void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len) {
   // It can be left empty or data can be processed there right before sending it to the PC
-  HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
-
-  return len; 
+  if (p_uart_driver->rx_idle)
+  {
+    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
+  }
 }
 
 /* USER CODE END 4 */

@@ -28,13 +28,14 @@ struct UARTDriver
 {
     // private declarations
     UART_HandleTypeDef *_p_huart;
-    uint8_t _rx_raw_buf[UART_RX_RAW_SIZE];
 
     uint8_t _tx_active_buf[RING_BUFFER_SIZE];
     volatile bool _tx_completed;
+    volatile uint16_t _dma_old_pos;
 
     // public declarations
     RingBuffer_t rx_fifo;
+    volatile bool rx_idle;
     /**
     * @brief Initialize UART interface component.
     */
@@ -45,7 +46,7 @@ struct UARTDriver
     int32_t (*transmit_data)(UARTDriver_t *self, uint8_t *p_data, uint16_t len);
     int32_t (*transmit)(UARTDriver_t *self, RingBuffer_t *p_tx_fifo);
     void (*on_data_transmitted)(UARTDriver_t *self);
-    uint16_t (*on_data_received)(UARTDriver_t *self, uint8_t *p_data, uint16_t len);
+    void (*on_data_received)(UARTDriver_t *self, uint8_t *p_data, const uint16_t len);
 };
 
 void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart);
