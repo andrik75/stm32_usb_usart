@@ -24,14 +24,14 @@ struct RingBuffer {
     uint8_t _data[RING_BUFFER_SIZE];
     volatile uint16_t _head;
     volatile uint16_t _tail;
+    volatile uint16_t _count; // Explicit count to use full RING_BUFFER_SIZE
 
     void (*Init)(RingBuffer_t *self);
-    uint16_t(*Write)(RingBuffer_t *self, const uint8_t *data, uint16_t len);
+    uint16_t (*Write)(RingBuffer_t *self, const uint8_t *data, uint16_t len);
     uint16_t (*Read)(RingBuffer_t *self, uint8_t *dest, uint16_t max_len);
     uint16_t (*GetCount)(RingBuffer_t *self);
     uint16_t (*GetFreeSpace)(RingBuffer_t *self);
     uint16_t (*GetCapacity)(RingBuffer_t *self);
-    uint16_t (*GetSize)(RingBuffer_t *self);
     void (*SetHead)(RingBuffer_t *self, uint16_t value);
     void (*SetTail)(RingBuffer_t *self, uint16_t value);
     void (*RollbackTail)(RingBuffer_t *self, uint16_t ldist); // Positive value of the ldist paramter means ldist bytes back
