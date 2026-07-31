@@ -51,6 +51,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/commons/ring_buffer.c
     Core/commons/uart_driver.c
     Core/commons/usb_driver.c
+    Core/commons/i2c_driver.c
 )
 
 # Add include paths
