@@ -11,9 +11,6 @@
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
 #include "debug_log.h"
-#include "i2c_driver.h"
-#include "stm32f1xx_hal_def.h"
-#include "uart_driver.h"
 #include "i2c_uart_bridge.h"
 
 #define SLAVE_I2C_ADDR (0x58 << 1) // 7-bit address 0x58 shifted left for STM32 HAL (0xB0)
