@@ -97,25 +97,23 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  UARTDriver_t uart1_driver;
-  USBDriver_t usb_driver;
+  USBUARTBridge_t usb_uart_bridge;
 
   extern USBD_HandleTypeDef hUsbDeviceFS;
 
-  UARTDriver_Ctor(&uart1_driver, &huart1);
-  USBDriver_Ctor(&usb_driver, USB_FS, &hUsbDeviceFS);
-
+  USBUARTBridge_Ctor(&usb_uart_bridge, &hUsbDeviceFS, &huart1);
+  
   // RX/TX event handlers forward declarations
   void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
   void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len);
   void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
   uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
 
-  uart1_driver.on_data_transmitted = UARTDriver_on_data_transmitted;
-  uart1_driver.on_data_received = UARTDriver_on_data_received;
+  usb_uart_bridge.uart_driver.on_data_transmitted = UARTDriver_on_data_transmitted;
+  usb_uart_bridge.uart_driver.on_data_received = UARTDriver_on_data_received;
 
-  usb_driver.on_data_transmitted = USBDriver_on_data_transmitted;
-  usb_driver.on_data_received = USBDriver_on_data_received;
+  usb_uart_bridge.usb_driver.on_data_transmitted = USBDriver_on_data_transmitted;
+  usb_uart_bridge.usb_driver.on_data_received = USBDriver_on_data_received;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,11 +121,11 @@ int main(void)
   LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
-    uart1_driver.transmit(&uart1_driver, &uart1_driver.rx_fifo); // Uncoment it to test the UART port as software loopback port
-    usb_driver.resume_rx(&usb_driver); // Uncoment it to test the USB port as software loopback port
-    usb_driver.transmit(&usb_driver, &usb_driver.rx_fifo); // Uncoment it to test the USB port as software loopback port
+    // usb_uart_bridge.uart_driver.transmit(&usb_uart_bridge.uart_driver, &usb_uart_bridge.uart_driver.rx_fifo); // Uncoment it to test the UART port as software loopback port
+    // usb_uart_bridge.usb_driver.resume_rx(&usb_uart_bridge.usb_driver); // Uncoment it to test the USB port as software loopback port
+    // usb_uart_bridge.usb_driver.transmit(&usb_uart_bridge.usb_driver, &usb_uart_bridge.usb_driver.rx_fifo); // Uncoment it to test the USB port as software loopback port
 
-    // USB_UART_Bridge_Process(&uart1_driver, &usb_driver); // Asynchronous background data transfer
+    usb_uart_bridge.process(&usb_uart_bridge); // Asynchronous background data transfer
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

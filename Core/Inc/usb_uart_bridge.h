@@ -1,5 +1,5 @@
 /**
-  * @file    usb_uart_bridge.c
+  * @file    usb_uart_bridge.h
   * @author  Andriy Bratus <ambr75@gmail.com>
   * @brief   Header file for USB <-> UART transparent transmission implementation.
   * @date    2026
@@ -20,10 +20,24 @@ typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 #include "usb_driver.h"
 
 // --- Public interface functions ---
+typedef struct USBUARTBridge USBUARTBridge_t;
 
-/**
- * @brief Background handler of the bridge. Must be called in main loop while(1).
- */
-void USB_UART_Bridge_Process(UARTDriver_t *p_uart_driver, USBDriver_t *p_usb_driver);
+struct USBUARTBridge
+{
+    // private declarations
+    USBDriver_t usb_driver;
+    UARTDriver_t uart_driver;
+
+    /**
+    * @brief Initialize the bridge component.
+    */
+    void (*init)(USBUARTBridge_t* self, USBD_HandleTypeDef* p_husb, UART_HandleTypeDef* p_huart);
+    /**
+    * @brief Process USB <-> UART transmission.
+    */
+    void (*process)(USBUARTBridge_t* self);
+};
+
+void USBUARTBridge_Ctor(USBUARTBridge_t* self, USBD_HandleTypeDef* p_husb, UART_HandleTypeDef* p_huart);
 
 #endif /* INC_USB_UART_BRIDGE_H_ */

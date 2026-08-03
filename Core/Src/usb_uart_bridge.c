@@ -15,13 +15,27 @@
 #include "usb_uart_bridge.h"
 #include "ring_buffer.h"
 
-// Shared global instances
-extern RingBuffer_t usb_rx_fifo;
-
 // --- Implementation of public interface ---
 
-void USB_UART_Bridge_Process(UARTDriver_t *p_uart_driver, USBDriver_t *p_usb_driver) {
-    p_uart_driver->transmit(p_uart_driver, &p_usb_driver->rx_fifo);
-    p_usb_driver->resume_rx(p_usb_driver);
-    p_usb_driver->transmit(p_usb_driver, &p_uart_driver->rx_fifo);
+/**
+ * @brief Initialize the USB <-> UART bridge.
+ */
+static void USB_UART_Bridge_Init(USBUARTBridge_t* self, USBD_HandleTypeDef* p_husb, UART_HandleTypeDef* p_huart) {
+    USBDriver_Ctor(&self->usb_driver, USB_FS, p_husb);
+    UARTDriver_Ctor(&self->uart_driver, p_huart);
+}
+
+/**
+ * @brief Background handler of the bridge. Must be called in main loop while(1).
+ */
+static void USB_UART_Bridge_Process(USBUARTBridge_t* self) {
+    self->uart_driver.transmit(&self->uart_driver, &self->usb_driver.rx_fifo);
+    self->usb_driver.resume_rx(&self->usb_driver);
+    self->usb_driver.transmit(&self->usb_driver, &self->uart_driver.rx_fifo);
+}
+
+void USBUARTBridge_Ctor(USBUARTBridge_t* self, USBD_HandleTypeDef* p_husb, UART_HandleTypeDef* p_huart) {
+    self->init = USB_UART_Bridge_Init;
+    self->process = USB_UART_Bridge_Process;
+    self->init(self, p_husb, p_huart);
 }
