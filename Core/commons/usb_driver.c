@@ -38,6 +38,7 @@ static USBDriver_t* Find_USBDriver(USBType usb_type) {
 }
 
 static void USBDriver_Init(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_husb) {
+    self->p_owner = NULL;
     self->_rx_paused = false;
     self->_p_rx_raw_buffer = NULL;
     self->usb_type = usb_type;

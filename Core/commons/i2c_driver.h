@@ -32,6 +32,7 @@ struct I2CDriver
     volatile bool _tx_completed;
 
     // public declarations
+    void *p_owner;
     RingBuffer_t rx_fifo;
     volatile bool rx_idle;
     /**

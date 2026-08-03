@@ -14,6 +14,7 @@
 #include "config.h"
 #include "i2c_driver.h"
 #include "debug_log.h"
+#include <sys/_types.h>
 
 static I2CDriver_t* RegisteredI2CDrivers[MAX_I2C_COUNT] = {0};
 
@@ -47,6 +48,7 @@ static HAL_StatusTypeDef I2C_Start_Receiving(I2C_HandleTypeDef *p_hi2c, uint8_t 
 }
 
 static void I2CDriver_Init(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c) {
+    self->p_owner = NULL;
     self->_p_hi2c = p_hi2c;
     self->rx_idle = true;
     self->_tx_completed = true;

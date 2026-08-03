@@ -51,6 +51,7 @@ static HAL_StatusTypeDef UART_Start_Receiving(UART_HandleTypeDef *p_huart, uint8
 }
 
 static void UARTDriver_Init(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
+    self->p_owner = NULL;
     self->_p_huart = p_huart;
     self->rx_idle = true;
     self->_tx_completed = true;

@@ -10,34 +10,26 @@
   * @attention
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
-#include "i2c_driver.h"
-#include "uart_driver.h"
-#include "ring_buffer.h"
 #include "debug_log.h"
+#include "i2c_driver.h"
+#include "stm32f1xx_hal_def.h"
+#include "uart_driver.h"
 #include "i2c_uart_bridge.h"
 
 #define SLAVE_I2C_ADDR (0x58 << 1) // 7-bit address 0x58 shifted left for STM32 HAL (0xB0)
-
-// Driver instances
-static UARTDriver_t uart_drv;
-static I2CDriver_t  i2c_drv;
-
-// Intermediate FIFOs for asynchronous TX transfers
-static RingBuffer_t uart_tx_fifo;
-static RingBuffer_t i2c_tx_fifo;
 
 // -------------------------------------------------------------------
 // UART Callbacks
 // -------------------------------------------------------------------
 
 /* Triggered when data is received from PC via UART -> queue it for I2C transmission */
-static void On_UART_Data_Received(UARTDriver_t *self, uint8_t *p_data, const uint16_t len) {
+__weak void On_I2C_UART_Bridge_UART_Data_Received(I2CUARTBridge_t* self, uint8_t *p_data, const uint16_t len) {
     // Copy incoming UART bytes into I2C TX buffer
-    i2c_tx_fifo.Write(&i2c_tx_fifo, p_data, len);
+    self->i2c_tx_fifo.Write(&self->i2c_tx_fifo, p_data, len);
 }
 
 /* Triggered when UART DMA transmission completes */
-static void On_UART_Data_Transmitted(UARTDriver_t *self) {
+__weak void On_I2C_UART_Bridge_UART_Data_Transmitted(I2CUARTBridge_t* self) {
     // Current UART TX chunk completed
 }
 
@@ -46,52 +38,120 @@ static void On_UART_Data_Transmitted(UARTDriver_t *self) {
 // -------------------------------------------------------------------
 
 /* Triggered when data is received via I2C -> queue it for UART transmission to PC */
-static void On_I2C_Data_Received(I2CDriver_t *self, uint8_t *p_data, const uint16_t len) {
+__weak void On_I2C_UART_Bridge_I2C_Data_Received(I2CUARTBridge_t* self, uint8_t *p_data, const uint16_t len) {
     // Copy incoming I2C bytes into UART TX buffer
-    uart_tx_fifo.Write(&uart_tx_fifo, p_data, len);
+    self->uart_tx_fifo.Write(&self->uart_tx_fifo, p_data, len);
 }
 
 /* Triggered when I2C DMA transmission completes */
-static void On_I2C_Data_Transmitted(I2CDriver_t *self) {
+__weak void On_I2C_UART_Bridge_I2C_Data_Transmitted(I2CUARTBridge_t* self) {
     // Current I2C TX chunk completed
+}
+
+/* private handlers*/
+
+// -------------------------------------------------------------------
+// UART Driver Callbacks
+// -------------------------------------------------------------------
+
+/* Triggered when data is received from PC via UART -> queue it for I2C transmission */
+static void On_UART_Data_Received(UARTDriver_t* self, uint8_t *p_data, const uint16_t len) {
+    // Passing the parameters into the bridge appropriate handler
+    if (self->p_owner != NULL) {
+        I2CUARTBridge_t *bridge = (I2CUARTBridge_t*)self->p_owner;
+        if (bridge->on_uart_data_received != NULL) {
+            bridge->on_uart_data_received(bridge, p_data, len);
+        }
+    }
+}
+
+/* Triggered when UART DMA transmission completes */
+static void On_UART_Data_Transmitted(UARTDriver_t* self) {
+    // Passing the parameters into the bridge appropriate handler
+    if (self->p_owner != NULL) {
+        I2CUARTBridge_t *bridge = (I2CUARTBridge_t*)self->p_owner;
+        if (bridge->on_uart_data_transmitted != NULL) {
+            bridge->on_uart_data_transmitted(bridge);
+        }
+    }
+}
+
+// -------------------------------------------------------------------
+// I2C Driver Callbacks
+// -------------------------------------------------------------------
+
+/* Triggered when data is received via I2C -> queue it for UART transmission to PC */
+static void On_I2C_Data_Received(I2CDriver_t* self, uint8_t *p_data, const uint16_t len) {
+    // Passing the parameters into the bridge appropriate handler
+    if (self->p_owner != NULL) {
+        I2CUARTBridge_t *bridge = (I2CUARTBridge_t*)self->p_owner;
+        if (bridge->on_i2c_data_received != NULL) {
+            bridge->on_i2c_data_received(bridge, p_data, len);
+        }
+    }
+}
+
+/* Triggered when I2C DMA transmission completes */
+static void On_I2C_Data_Transmitted(I2CDriver_t* self) {
+    // Passing the parameters into the bridge appropriate handler
+    if (self->p_owner != NULL) {
+        I2CUARTBridge_t *bridge = (I2CUARTBridge_t*)self->p_owner;
+        if (bridge->on_i2c_data_transmitted != NULL) {
+            bridge->on_i2c_data_transmitted(bridge);
+        }
+    }
 }
 
 // -------------------------------------------------------------------
 // Bridge Logic
 // -------------------------------------------------------------------
 
-void I2C_UART_Bridge_Init(UART_HandleTypeDef* p_uart_handle, I2C_HandleTypeDef* p_usb_handle) {
+// --- Implementation of public interface ---
+
+/**
+ * @brief Initialize the I2C <-> UART bridge.
+ */
+static void I2C_UART_Bridge_Init(I2CUARTBridge_t* self, I2C_HandleTypeDef* p_hi2c, UART_HandleTypeDef* p_huart) {
     // Construct ring buffers for transmit pipelines
-    RingBuffer_Ctor(&uart_tx_fifo);
-    RingBuffer_Ctor(&i2c_tx_fifo);
+    RingBuffer_Ctor(&self->uart_tx_fifo);
+    RingBuffer_Ctor(&self->i2c_tx_fifo);
 
     // Initialize UART driver instance
-    UARTDriver_Ctor(&uart_drv, p_uart_handle);
-    uart_drv.on_data_received = On_UART_Data_Received;
-    uart_drv.on_data_transmitted = On_UART_Data_Transmitted;
+    UARTDriver_Ctor(&self->uart_driver, p_huart);
+    self->uart_driver.on_data_received = On_UART_Data_Received;
+    self->uart_driver.on_data_transmitted = On_UART_Data_Transmitted;
 
     // Initialize I2C driver instance (automatically enters Slave Receive/Listen mode)
-    I2CDriver_Ctor(&i2c_drv, p_usb_handle);
-    i2c_drv.on_data_received = On_I2C_Data_Received;
-    i2c_drv.on_data_transmitted = On_I2C_Data_Transmitted;
+    I2CDriver_Ctor(&self->i2c_driver, p_hi2c);
+    self->i2c_driver.on_data_received = On_I2C_Data_Received;
+    self->i2c_driver.on_data_transmitted = On_I2C_Data_Transmitted;
 
     LOG_INFO("UART <-> I2C Bridge Initialized");
 }
 
-/* It is called from the infinite main loop or from a FreeRTOS task */
-void I2C_UART_Bridge_Process(bool is_master) {
-    // 1. Flush data from UART TX FIFO out to PC via UART DMA
-    if (uart_tx_fifo.GetCount(&uart_tx_fifo) > 0) {
-        uart_drv.transmit(&uart_drv, &uart_tx_fifo);
+/**
+ * @brief Background handler of the bridge. Must be called in main loop while(1).
+ */
+ /* It is called from the infinite main loop or from a FreeRTOS task */
+static void I2C_UART_Bridge_Process(I2CUARTBridge_t* self, bool is_master) {
+   // 1. Flush data from UART TX FIFO out to PC via UART DMA
+    if (self->uart_tx_fifo.GetCount(&self->uart_tx_fifo) > 0) {
+        self->uart_driver.transmit(&self->uart_driver, &self->uart_tx_fifo);
     }
 
     // 2. Flush data from I2C TX FIFO out to the I2C bus
-    if (i2c_tx_fifo.GetCount(&i2c_tx_fifo) > 0) {
+    if (self->i2c_tx_fifo.GetCount(&self->i2c_tx_fifo) > 0) {
         if (is_master) {
             // Master initiates I2C DMA transmit to Target Slave (0x58)
-            i2c_drv.transmit(&i2c_drv, &i2c_tx_fifo, SLAVE_I2C_ADDR);
+            self->i2c_driver.transmit(&self->i2c_driver, &self->i2c_tx_fifo, SLAVE_I2C_ADDR);
         } else {
             // Slave TX handling can be processed here if Read Request from Master occurs
         }
     }
+}
+
+void I2CUARTBridge_Ctor(I2CUARTBridge_t* self, I2C_HandleTypeDef* p_hi2c, UART_HandleTypeDef* p_huart) {
+    self->init = I2C_UART_Bridge_Init;
+    self->process = I2C_UART_Bridge_Process;
+    self->init(self, p_hi2c, p_huart);
 }

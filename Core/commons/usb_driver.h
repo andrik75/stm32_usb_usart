@@ -36,6 +36,7 @@ struct USBDriver
 
 
     // public declarations
+    void *p_owner;
     USBType usb_type;
     RingBuffer_t rx_fifo;
     /**
