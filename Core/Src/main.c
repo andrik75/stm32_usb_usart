@@ -19,7 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
-#include "stm32f1xx_hal_gpio.h"
+#include "i2c.h"
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
@@ -30,6 +30,7 @@
 #include "usb_driver.h"
 #include "uart_driver.h"
 #include "usb_uart_bridge.h"
+#include "i2c_uart_bridge.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +40,17 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define UART_COMMUNICATION
+// #define USB_COMMUNICATION
+#define I2C_COMMUNICATION
+
+#if (defined(UART_COMMUNICATION) + defined(USB_COMMUNICATION) + defined(I2C_COMMUNICATION) > 2)
+  #error "It's allowed to choise no more than 2 protocols simultaneoiusly"
+#endif
+
+#ifdef I2C_COMMUNICATION
+  #define IS_I2C_MASTER (false)
+#endif
 
 /* USER CODE END PD */
 
@@ -96,24 +108,42 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  USBUARTBridge_t usb_uart_bridge;
 
-  extern USBD_HandleTypeDef hUsbDeviceFS;
-
-  USBUARTBridge_Ctor(&usb_uart_bridge, &hUsbDeviceFS, &huart1);
-  
   // RX/TX event handlers forward declarations
+#ifdef UART_COMMUNICATION
+  extern UART_HandleTypeDef huart1;
   void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
   void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len);
+#endif
+
+#ifdef USB_COMMUNICATION
+  extern USBD_HandleTypeDef hUsbDeviceFS;
   void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
   uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
+#endif
+
+#ifdef I2C_COMMUNICATION
+  extern I2C_HandleTypeDef hi2c1;
+#endif
+
+#if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
+  USBUARTBridge_t usb_uart_bridge;
+  USBUARTBridge_Ctor(&usb_uart_bridge, &hUsbDeviceFS, &huart1);
 
   usb_uart_bridge.uart_driver.on_data_transmitted = UARTDriver_on_data_transmitted;
   usb_uart_bridge.uart_driver.on_data_received = UARTDriver_on_data_received;
 
   usb_uart_bridge.usb_driver.on_data_transmitted = USBDriver_on_data_transmitted;
   usb_uart_bridge.usb_driver.on_data_received = USBDriver_on_data_received;
+#endif
+
+#if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
+  I2CUARTBridge_t i2c_uart_bridge;
+  I2CUARTBridge_Ctor(&i2c_uart_bridge, &hi2c1, &huart1);
+#endif
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -125,7 +155,13 @@ int main(void)
     // usb_uart_bridge.usb_driver.resume_rx(&usb_uart_bridge.usb_driver); // Uncoment it to test the USB port as software loopback port
     // usb_uart_bridge.usb_driver.transmit(&usb_uart_bridge.usb_driver, &usb_uart_bridge.usb_driver.rx_fifo); // Uncoment it to test the USB port as software loopback port
 
+#if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
     usb_uart_bridge.process(&usb_uart_bridge); // Asynchronous background data transfer
+#endif
+
+#if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
+  i2c_uart_bridge.process(&i2c_uart_bridge, IS_I2C_MASTER);
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -181,6 +217,7 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 // An example of the business logic hook redefinition directly in the main.c:
+#ifdef USB_COMMUNICATION
 void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver) {
   HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
@@ -195,7 +232,9 @@ uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, ui
 
   return len;
 }
+#endif
 
+#ifdef UART_COMMUNICATION
 void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver) {
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); // Just to visually enjoy how it works there
 }
@@ -207,6 +246,7 @@ void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, con
     HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET); // Just to visually enjoy how it works there
   }
 }
+#endif
 
 /* USER CODE END 4 */
 
