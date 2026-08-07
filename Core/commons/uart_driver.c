@@ -125,7 +125,7 @@ static int32_t UARTDriver_transmit(UARTDriver_t *self, RingBuffer_t *p_tx_fifo) 
         if (fifo_buf_count > 0) {
             uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
             result = self->transmit_data(self, self->_tx_active_buf, send_len);
-            if (result - send_len > 0) {
+            if ((int32_t)result - (int32_t)send_len < 0) {
                 p_tx_fifo->RollbackTail(p_tx_fifo, send_len - result);
             }
         }

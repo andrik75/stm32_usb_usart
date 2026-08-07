@@ -14,7 +14,6 @@
 #include "usb_driver.h"
 #include "usbd_cdc_if.h" // Needed for CDC_Transmit_FS and USB descriptor
 #include "debug_log.h"
-#include <stdint.h>
 
 static USBDriver_t* RegisteredUSBDrivers[MAX_USBD_COUNT] = {0};
 
@@ -169,7 +168,7 @@ static int32_t USBDriver_transmit(USBDriver_t *self, RingBuffer_t *p_tx_fifo) {
         fifo_buf_count = fifo_buf_count <= max_len ? fifo_buf_count : max_len;
         uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
         result = self->transmit_data(self, self->_tx_active_buf, send_len);
-        if (result - send_len > 0) {
+        if ((int32_t)result - (int32_t)send_len < 0) {
             p_tx_fifo->RollbackTail(p_tx_fifo, send_len - result);
          }
     }

@@ -117,13 +117,21 @@ static void I2C_UART_Bridge_Init(I2CUARTBridge_t* self, I2C_HandleTypeDef* p_hi2
     UARTDriver_Ctor(&self->uart_driver, p_huart);
     self->uart_driver.on_data_received = On_UART_Data_Received;
     self->uart_driver.on_data_transmitted = On_UART_Data_Transmitted;
+    self->uart_driver.p_owner = (void*)self;
 
     // Initialize I2C driver instance (automatically enters Slave Receive/Listen mode)
     I2CDriver_Ctor(&self->i2c_driver, p_hi2c);
     self->i2c_driver.on_data_received = On_I2C_Data_Received;
     self->i2c_driver.on_data_transmitted = On_I2C_Data_Transmitted;
+    self->i2c_driver.p_owner = (void*)self;
 
-    LOG_INFO("UART <-> I2C Bridge Initialized");
+    // Initialize bridge callback handlers
+    self->on_uart_data_received = On_I2C_UART_Bridge_UART_Data_Received;
+    self->on_uart_data_transmitted = On_I2C_UART_Bridge_UART_Data_Transmitted;
+    self->on_i2c_data_received = On_I2C_UART_Bridge_I2C_Data_Received;
+    self->on_i2c_data_transmitted = On_I2C_UART_Bridge_I2C_Data_Transmitted;
+    
+    LOG_INFO("I2C <-> UART Bridge Initialized");
 }
 
 /**

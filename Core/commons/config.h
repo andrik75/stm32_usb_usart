@@ -50,4 +50,16 @@
     #define MAX_I2C_COUNT  (1)
 #endif
 
+#define UART_COMMUNICATION
+// #define USB_COMMUNICATION
+#define I2C_COMMUNICATION
+
+#if (defined(UART_COMMUNICATION) + defined(USB_COMMUNICATION) + defined(I2C_COMMUNICATION) > 2)
+  #error "It's allowed to choise no more than 2 protocols simultaneoiusly"
+#endif
+
+#ifdef I2C_COMMUNICATION
+  #define IS_I2C_MASTER (true)
+#endif
+
 #endif /* INC_CONFIG_H_ */

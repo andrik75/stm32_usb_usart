@@ -26,11 +26,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "config.h"
 #include "debug_log.h"
-#include "usb_driver.h"
-#include "uart_driver.h"
-#include "usb_uart_bridge.h"
-#include "i2c_uart_bridge.h"
+
+#if defined (USB_COMMUNICATION) && defined(UART_COMMUNICATION)
+  #include "usb_uart_bridge.h"
+#endif
+
+#if defined (I2C_COMMUNICATION) && defined(UART_COMMUNICATION)
+  #include "i2c_uart_bridge.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,17 +45,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UART_COMMUNICATION
-// #define USB_COMMUNICATION
-#define I2C_COMMUNICATION
-
-#if (defined(UART_COMMUNICATION) + defined(USB_COMMUNICATION) + defined(I2C_COMMUNICATION) > 2)
-  #error "It's allowed to choise no more than 2 protocols simultaneoiusly"
-#endif
-
-#ifdef I2C_COMMUNICATION
-  #define IS_I2C_MASTER (false)
-#endif
 
 /* USER CODE END PD */
 

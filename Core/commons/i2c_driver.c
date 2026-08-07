@@ -14,7 +14,6 @@
 #include "config.h"
 #include "i2c_driver.h"
 #include "debug_log.h"
-#include <sys/_types.h>
 
 static I2CDriver_t* RegisteredI2CDrivers[MAX_I2C_COUNT] = {0};
 
@@ -112,7 +111,7 @@ static int32_t I2CDriver_transmit(I2CDriver_t *self, RingBuffer_t *p_tx_fifo, ui
         if (fifo_buf_count > 0) {
             uint16_t send_len = p_tx_fifo->Read(p_tx_fifo, self->_tx_active_buf, fifo_buf_count);
             result = self->transmit_data(self, self->_tx_active_buf, send_len, target_address);
-            if (result - send_len > 0) {
+            if ((int32_t)result - (int32_t)send_len < 0) {
                 p_tx_fifo->RollbackTail(p_tx_fifo, send_len - result);
             }
         }

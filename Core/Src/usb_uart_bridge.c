@@ -12,6 +12,7 @@
   */
 #include <stddef.h>
 #include <stdint.h>
+#include "debug_log.h"
 #include "usb_uart_bridge.h"
 #include "ring_buffer.h"
 
@@ -22,7 +23,11 @@
  */
 static void USB_UART_Bridge_Init(USBUARTBridge_t* self, USBD_HandleTypeDef* p_husb, UART_HandleTypeDef* p_huart) {
     USBDriver_Ctor(&self->usb_driver, USB_FS, p_husb);
+    self->usb_driver.p_owner = (void*)self;
     UARTDriver_Ctor(&self->uart_driver, p_huart);
+    self->uart_driver.p_owner = (void*)self;
+
+    LOG_INFO("USB <-> UART Bridge Initialized");
 }
 
 /**
