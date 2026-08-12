@@ -46,6 +46,7 @@ struct I2CDriver
     int32_t (*transmit)(I2CDriver_t *self, RingBuffer_t *p_tx_fifo, uint16_t target_address);
     void (*on_data_transmitted)(I2CDriver_t *self);
     void (*on_data_received)(I2CDriver_t *self, uint8_t *p_data, const uint16_t len);
+    bool (*is_device_ready)(I2CDriver_t *self, uint16_t device_address);
 };
 
 void I2CDriver_Ctor(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c);

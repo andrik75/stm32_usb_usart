@@ -151,6 +151,7 @@ static void I2C_UART_Bridge_Process(I2CUARTBridge_t* self, bool is_master) {
             self->i2c_driver.transmit(&self->i2c_driver, &self->i2c_tx_fifo, SLAVE_I2C_ADDR);
         } else {
             // Slave TX handling can be processed here if Read Request from Master occurs
+            LOG_WARN("Slave device cannot initiate transmitting in the current implementation.");
         }
     }
 }
