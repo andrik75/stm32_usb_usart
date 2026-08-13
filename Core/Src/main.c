@@ -68,6 +68,30 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// RX/TX event handlers forward declarations
+#ifdef UART_COMMUNICATION
+  extern UART_HandleTypeDef huart1;
+  void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
+  void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len);
+#endif
+
+#ifdef USB_COMMUNICATION
+  extern USBD_HandleTypeDef hUsbDeviceFS;
+  void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
+  uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
+#endif
+
+#ifdef I2C_COMMUNICATION
+  extern I2C_HandleTypeDef hi2c1;
+#endif
+
+#if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
+  USBUARTBridge_t usb_uart_bridge;
+#endif
+
+#if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
+  I2CUARTBridge_t i2c_uart_bridge;
+#endif
 /* USER CODE END 0 */
 
 /**
@@ -105,25 +129,7 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-  // RX/TX event handlers forward declarations
-#ifdef UART_COMMUNICATION
-  extern UART_HandleTypeDef huart1;
-  void UARTDriver_on_data_transmitted(UARTDriver_t *p_uart_driver);
-  void UARTDriver_on_data_received(UARTDriver_t *p_uart_driver, uint8_t *data, const uint16_t len);
-#endif
-
-#ifdef USB_COMMUNICATION
-  extern USBD_HandleTypeDef hUsbDeviceFS;
-  void USBDriver_on_data_transmitted(USBDriver_t *p_usb_driver);
-  uint16_t USBDriver_on_data_received(USBDriver_t *p_usb_driver, uint8_t *data, uint16_t len);
-#endif
-
-#ifdef I2C_COMMUNICATION
-  extern I2C_HandleTypeDef hi2c1;
-#endif
-
 #if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
-  USBUARTBridge_t usb_uart_bridge;
   USBUARTBridge_Ctor(&usb_uart_bridge, &hUsbDeviceFS, &huart1);
 
   usb_uart_bridge.uart_driver.on_data_transmitted = UARTDriver_on_data_transmitted;
@@ -134,7 +140,6 @@ int main(void)
 #endif
 
 #if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
-  I2CUARTBridge_t i2c_uart_bridge;
   I2CUARTBridge_Ctor(&i2c_uart_bridge, &hi2c1, &huart1);
 #endif
 
