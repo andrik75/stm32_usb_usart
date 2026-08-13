@@ -56,7 +56,9 @@ static void I2CDriver_Init(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c) {
     self->on_data_received = NULL;
     RingBuffer_Ctor(&self->rx_fifo);
 
-    I2C_Start_Receiving(self->_p_hi2c, self->rx_fifo._data, self->rx_fifo.GetCapacity(&self->rx_fifo));
+    if (!IS_I2C_MASTER) {
+        I2C_Start_Receiving(self->_p_hi2c, self->rx_fifo._data, self->rx_fifo.GetCapacity(&self->rx_fifo));
+    }
 }
 
 static void I2CDriver_RxEventCallback(I2CDriver_t* p_i2c_driver, uint16_t dma_curr_pos) {
@@ -73,7 +75,9 @@ static void I2CDriver_RxEventCallback(I2CDriver_t* p_i2c_driver, uint16_t dma_cu
     p_i2c_driver->rx_fifo.SetHead(&p_i2c_driver->rx_fifo, dma_curr_pos);
 
     p_i2c_driver->rx_idle = true;
-    I2C_Start_Receiving(p_i2c_driver->_p_hi2c, p_i2c_driver->rx_fifo._data, p_i2c_driver->rx_fifo.GetCapacity(&p_i2c_driver->rx_fifo));
+    if (!IS_I2C_MASTER) {
+        I2C_Start_Receiving(p_i2c_driver->_p_hi2c, p_i2c_driver->rx_fifo._data, p_i2c_driver->rx_fifo.GetCapacity(&p_i2c_driver->rx_fifo));
+    }
     LOG_INFO("I2C RxEvent complete");
 }
 
