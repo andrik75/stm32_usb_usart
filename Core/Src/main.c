@@ -118,17 +118,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART1_UART_Init();
-  MX_USB_DEVICE_Init();
-  MX_I2C1_Init();
-  /* USER CODE BEGIN 2 */
-
+  
 #if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
   USBUARTBridge_Ctor(&usb_uart_bridge, &hUsbDeviceFS, &huart1);
 
@@ -142,6 +132,16 @@ int main(void)
 #if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
   I2CUARTBridge_Ctor(&i2c_uart_bridge, &hi2c1, &huart1);
 #endif
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART1_UART_Init();
+  MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
+  /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
