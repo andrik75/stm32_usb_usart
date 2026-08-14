@@ -11,6 +11,9 @@
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
 #include "config.h"
+
+#ifdef USB_COMMUNICATION
+
 #include "usb_driver.h"
 #include "usbd_cdc_if.h" // Needed for CDC_Transmit_FS and USB descriptor
 #include "debug_log.h"
@@ -187,3 +190,5 @@ void USBDriver_Ctor(USBDriver_t *self, USBType usb_type, USBD_HandleTypeDef *p_h
  
     self->init(self, usb_type, p_husb);
 }
+
+#endif

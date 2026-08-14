@@ -10,11 +10,15 @@
   * @attention
   * SPDX-License-Identifier: GPL-3.0-or-later
   */
+#include "config.h"
+
+#ifdef UART_COMMUNICATION
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include "SEGGER_RTT.h"
-#include "config.h"
+
 #include "uart_driver.h"
 #include "critical_section.h"
 #include "debug_log.h"
@@ -161,3 +165,5 @@ void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     self->init(self, p_huart);
     Register_UARTDriver(self);
 }
+
+#endif

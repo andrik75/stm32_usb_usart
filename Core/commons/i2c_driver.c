@@ -12,6 +12,9 @@
   */
 
 #include "config.h"
+
+#ifdef I2C_COMMUNICATION
+
 #include "i2c_driver.h"
 #include "debug_log.h"
 #include <stdint.h>
@@ -167,3 +170,5 @@ void I2CDriver_Ctor(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c) {
     self->init(self, p_hi2c);
     Register_I2CDriver(self);
 }
+
+#endif

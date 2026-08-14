@@ -52,6 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/commons/uart_driver.c
     Core/commons/usb_driver.c
     Core/commons/i2c_driver.c
+    Core/Src/usb_uart_bridge.c
     Core/Src/i2c_uart_bridge.c
 )
 
