@@ -153,11 +153,11 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *p_huart) {
 
 void UARTDriver_Ctor(UARTDriver_t *self, UART_HandleTypeDef *p_huart) {
     if (self == NULL) return;
-    if (!Register_UARTDriver(self)) return;
-
+ 
     self->init = UARTDriver_Init;
     self->transmit_data = UARTDriver_transmit_data;
     self->transmit = UARTDriver_transmit;
  
     self->init(self, p_huart);
+    Register_UARTDriver(self);
 }

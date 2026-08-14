@@ -103,6 +103,11 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
+  __HAL_RCC_I2C1_FORCE_RESET();
+  // __HAL_RCC_DMA1_FORCE_RESET();
+  __HAL_RCC_I2C1_RELEASE_RESET();
+  // __HAL_RCC_DMA1_RELEASE_RESET();
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -147,19 +152,25 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_Delay(100);
+
   LOG_INFO("%s", "Main loop is starting...");
   while (1)
   {
+
+#if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
     // usb_uart_bridge.uart_driver.transmit(&usb_uart_bridge.uart_driver, &usb_uart_bridge.uart_driver.rx_fifo); // Uncoment it to test the UART port as software loopback port
     // usb_uart_bridge.usb_driver.resume_rx(&usb_uart_bridge.usb_driver); // Uncoment it to test the USB port as software loopback port
     // usb_uart_bridge.usb_driver.transmit(&usb_uart_bridge.usb_driver, &usb_uart_bridge.usb_driver.rx_fifo); // Uncoment it to test the USB port as software loopback port
 
-#if defined(UART_COMMUNICATION) && defined(USB_COMMUNICATION)
     usb_uart_bridge.process(&usb_uart_bridge); // Asynchronous background data transfer
 #endif
 
 #if defined(UART_COMMUNICATION) && defined(I2C_COMMUNICATION)
-  i2c_uart_bridge.process(&i2c_uart_bridge, IS_I2C_MASTER);
+    i2c_uart_bridge.uart_driver.transmit(&i2c_uart_bridge.uart_driver, &i2c_uart_bridge.uart_driver.rx_fifo); // Uncoment it to test the UART port as software loopback port
+    // HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+    // HAL_Delay(200);
+    // i2c_uart_bridge.process(&i2c_uart_bridge, IS_I2C_MASTER);
 #endif
     /* USER CODE END WHILE */
 

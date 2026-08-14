@@ -158,7 +158,6 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *p_hi2c) {
 
 void I2CDriver_Ctor(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c) {
     if (self == NULL) return;
-    if (!Register_I2CDriver(self)) return;
 
     self->init = I2CDriver_Init;
     self->transmit_data = I2CDriver_transmit_data;
@@ -166,4 +165,5 @@ void I2CDriver_Ctor(I2CDriver_t *self, I2C_HandleTypeDef *p_hi2c) {
     self->is_device_ready = I2CDriver_IsDeviceReady;
 
     self->init(self, p_hi2c);
+    Register_I2CDriver(self);
 }
